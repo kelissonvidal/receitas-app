@@ -1,16 +1,48 @@
 import React, { useState } from 'react';
-import { LogOut, User as UserIcon, BookOpen, Home as HomeIcon, BarChart2 } from 'lucide-react';
+import { LogOut, User as UserIcon, BookOpen, Home as HomeIcon, BarChart2, Menu, X } from 'lucide-react';
 import FoodDiary from './components/FoodDiary';
 import Dashboard from './components/Dashboard';
 import WeightTracker from './components/WeightTracker';
 
 const App = ({ user, userProfile, onLogout, onEditProfile }) => {
-  const [currentView, setCurrentView] = useState('home'); // 'home' | 'profile' | 'diary' | 'dashboard'
+  const [currentView, setCurrentView] = useState('home');
+  const [menuOpen, setMenuOpen] = useState(false);
+
+  const MenuItem = ({ view, icon: Icon, label, onClick }) => (
+    <button
+      onClick={() => {
+        if (onClick) {
+          onClick();
+        } else {
+          setCurrentView(view);
+        }
+        setMenuOpen(false);
+      }}
+      style={{
+        padding: '12px 20px',
+        background: currentView === view ? 'linear-gradient(135deg, #2E7D32 0%, #1B5E20 100%)' : '#f5f5f5',
+        color: currentView === view ? 'white' : '#333',
+        border: 'none',
+        borderRadius: '8px',
+        cursor: 'pointer',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '8px',
+        fontSize: '14px',
+        fontWeight: '600',
+        width: '100%',
+        justifyContent: 'flex-start'
+      }}
+    >
+      <Icon size={18} />
+      {label}
+    </button>
+  );
 
   return (
     <div style={{
       minHeight: '100vh',
-      background: 'linear-gradient(135deg, #8B4513 0%, #A0522D 100%)',
+      background: 'linear-gradient(135deg, #2E7D32 0%, #1B5E20 100%)',
       padding: '20px'
     }}>
       {/* HEADER */}
@@ -21,131 +53,217 @@ const App = ({ user, userProfile, onLogout, onEditProfile }) => {
         borderRadius: '16px',
         padding: '20px',
         marginBottom: '20px',
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
         boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
       }}>
-        <div>
-          <h1 style={{
-            fontSize: '24px',
-            fontWeight: '800',
-            color: '#8B4513',
-            margin: 0
+        <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+          {/* LOGO */}
+          <div>
+            <h1 style={{
+              fontSize: '24px',
+              fontWeight: '800',
+              margin: 0,
+              background: 'linear-gradient(135deg, #2E7D32 0%, #1976D2 100%)',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              backgroundClip: 'text'
+            }}>
+              💪 VigorAI
+            </h1>
+            <p style={{
+              fontSize: '12px',
+              color: '#666',
+              margin: '4px 0 0 0'
+            }}>
+              Olá, {user?.displayName || user?.email?.split('@')[0] || 'Usuário'}!
+            </p>
+          </div>
+
+          {/* DESKTOP MENU */}
+          <div style={{
+            display: 'flex',
+            gap: '8px',
+            alignItems: 'center'
           }}>
-            👨‍🍳 Receitas Mais Rápidas
-          </h1>
-          <p style={{
-            fontSize: '14px',
-            color: '#666',
-            margin: '4px 0 0 0'
-          }}>
-            Olá, {user?.displayName || user?.email?.split('@')[0] || 'Usuário'}!
-          </p>
+            <div style={{display: 'flex', gap: '8px', '@media (max-width: 768px)': {display: 'none'}}}>
+              <button
+                onClick={() => setCurrentView('home')}
+                style={{
+                  padding: '10px 16px',
+                  background: currentView === 'home' ? 'linear-gradient(135deg, #2E7D32 0%, #1B5E20 100%)' : '#f5f5f5',
+                  color: currentView === 'home' ? 'white' : '#333',
+                  border: 'none',
+                  borderRadius: '8px',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  fontSize: '13px',
+                  fontWeight: '600',
+                  whiteSpace: 'nowrap'
+                }}
+              >
+                <HomeIcon size={16} />
+                <span style={{display: window.innerWidth < 900 ? 'none' : 'inline'}}>Início</span>
+              </button>
+
+              <button
+                onClick={() => setCurrentView('diary')}
+                style={{
+                  padding: '10px 16px',
+                  background: currentView === 'diary' ? 'linear-gradient(135deg, #2E7D32 0%, #1B5E20 100%)' : '#f5f5f5',
+                  color: currentView === 'diary' ? 'white' : '#333',
+                  border: 'none',
+                  borderRadius: '8px',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  fontSize: '13px',
+                  fontWeight: '600',
+                  whiteSpace: 'nowrap'
+                }}
+              >
+                <BookOpen size={16} />
+                <span style={{display: window.innerWidth < 900 ? 'none' : 'inline'}}>Diário</span>
+              </button>
+
+              <button
+                onClick={() => setCurrentView('dashboard')}
+                style={{
+                  padding: '10px 16px',
+                  background: currentView === 'dashboard' ? 'linear-gradient(135deg, #2E7D32 0%, #1B5E20 100%)' : '#f5f5f5',
+                  color: currentView === 'dashboard' ? 'white' : '#333',
+                  border: 'none',
+                  borderRadius: '8px',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  fontSize: '13px',
+                  fontWeight: '600',
+                  whiteSpace: 'nowrap'
+                }}
+              >
+                <BarChart2 size={16} />
+                <span style={{display: window.innerWidth < 900 ? 'none' : 'inline'}}>Dashboard</span>
+              </button>
+
+              <button
+                onClick={() => setCurrentView('profile')}
+                style={{
+                  padding: '10px 16px',
+                  background: currentView === 'profile' ? 'linear-gradient(135deg, #2E7D32 0%, #1B5E20 100%)' : '#f5f5f5',
+                  color: currentView === 'profile' ? 'white' : '#333',
+                  border: 'none',
+                  borderRadius: '8px',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  fontSize: '13px',
+                  fontWeight: '600',
+                  whiteSpace: 'nowrap'
+                }}
+              >
+                <UserIcon size={16} />
+                <span style={{display: window.innerWidth < 900 ? 'none' : 'inline'}}>Perfil</span>
+              </button>
+
+              <button
+                onClick={onLogout}
+                style={{
+                  padding: '10px 16px',
+                  background: '#fee',
+                  border: 'none',
+                  borderRadius: '8px',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  fontSize: '13px',
+                  fontWeight: '600',
+                  color: '#c33',
+                  whiteSpace: 'nowrap'
+                }}
+              >
+                <LogOut size={16} />
+                <span style={{display: window.innerWidth < 900 ? 'none' : 'inline'}}>Sair</span>
+              </button>
+            </div>
+
+            {/* MOBILE MENU BUTTON */}
+            <button
+              onClick={() => setMenuOpen(!menuOpen)}
+              style={{
+                padding: '10px',
+                background: '#f5f5f5',
+                border: 'none',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                display: 'none',
+                '@media (max-width: 768px)': {display: 'flex'}
+              }}
+              className="mobile-menu-btn"
+            >
+              {menuOpen ? <X size={20} /> : <Menu size={20} />}
+            </button>
+          </div>
         </div>
 
-        <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-          <button
-            onClick={() => setCurrentView('home')}
-            style={{
-              padding: '10px 16px',
-              background: currentView === 'home' ? 'linear-gradient(135deg, #DAA520 0%, #B8860B 100%)' : '#f5f5f5',
-              color: currentView === 'home' ? 'white' : '#333',
-              border: 'none',
-              borderRadius: '8px',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              fontSize: '14px',
-              fontWeight: '600'
-            }}
-          >
-            <HomeIcon size={18} />
-            Início
-          </button>
-
-          <button
-            onClick={() => setCurrentView('diary')}
-            style={{
-              padding: '10px 16px',
-              background: currentView === 'diary' ? 'linear-gradient(135deg, #DAA520 0%, #B8860B 100%)' : '#f5f5f5',
-              color: currentView === 'diary' ? 'white' : '#333',
-              border: 'none',
-              borderRadius: '8px',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              fontSize: '14px',
-              fontWeight: '600'
-            }}
-          >
-            <BookOpen size={18} />
-            Diário
-          </button>
-
-          <button
-            onClick={() => setCurrentView('dashboard')}
-            style={{
-              padding: '10px 16px',
-              background: currentView === 'dashboard' ? 'linear-gradient(135deg, #DAA520 0%, #B8860B 100%)' : '#f5f5f5',
-              color: currentView === 'dashboard' ? 'white' : '#333',
-              border: 'none',
-              borderRadius: '8px',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              fontSize: '14px',
-              fontWeight: '600'
-            }}
-          >
-            <BarChart2 size={18} />
-            Dashboard
-          </button>
-
-          <button
-            onClick={() => setCurrentView('profile')}
-            style={{
-              padding: '10px 16px',
-              background: currentView === 'profile' ? 'linear-gradient(135deg, #DAA520 0%, #B8860B 100%)' : '#f5f5f5',
-              color: currentView === 'profile' ? 'white' : '#333',
-              border: 'none',
-              borderRadius: '8px',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              fontSize: '14px',
-              fontWeight: '600'
-            }}
-          >
-            <UserIcon size={18} />
-            Perfil
-          </button>
-
-          <button
-            onClick={onLogout}
-            style={{
-              padding: '10px 16px',
-              background: '#fee',
-              border: 'none',
-              borderRadius: '8px',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              fontSize: '14px',
-              fontWeight: '600',
-              color: '#c33'
-            }}
-          >
-            <LogOut size={18} />
-            Sair
-          </button>
-        </div>
+        {/* MOBILE MENU DROPDOWN */}
+        {menuOpen && (
+          <div style={{
+            marginTop: '16px',
+            padding: '16px',
+            background: '#f9f9f9',
+            borderRadius: '12px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '8px'
+          }} className="mobile-menu">
+            <MenuItem view="home" icon={HomeIcon} label="Início" />
+            <MenuItem view="diary" icon={BookOpen} label="Diário" />
+            <MenuItem view="dashboard" icon={BarChart2} label="Dashboard" />
+            <MenuItem view="profile" icon={UserIcon} label="Perfil" />
+            <button
+              onClick={() => {
+                onLogout();
+                setMenuOpen(false);
+              }}
+              style={{
+                padding: '12px 20px',
+                background: '#fee',
+                color: '#c33',
+                border: 'none',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                fontSize: '14px',
+                fontWeight: '600',
+                width: '100%',
+                justifyContent: 'flex-start'
+              }}
+            >
+              <LogOut size={18} />
+              Sair
+            </button>
+          </div>
+        )}
       </div>
+
+      {/* Add media query styles */}
+      <style>{`
+        @media (max-width: 900px) {
+          .mobile-menu-btn {
+            display: flex !important;
+          }
+          .mobile-menu-btn ~ div > div {
+            display: none !important;
+          }
+        }
+      `}</style>
 
       {/* CONTENT */}
       <div style={{
