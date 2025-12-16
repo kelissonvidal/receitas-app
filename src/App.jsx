@@ -3,9 +3,10 @@ import { LogOut, User as UserIcon, BookOpen, Home as HomeIcon, BarChart2, Menu, 
 import FoodDiary from './components/FoodDiary';
 import Dashboard from './components/Dashboard';
 import WeightTracker from './components/WeightTracker';
+import RecipeGenerator from './components/RecipeGenerator';
 
 const App = ({ user, userProfile, onLogout, onEditProfile }) => {
-  const [currentView, setCurrentView] = useState('home');
+  const [currentView, setCurrentView] = useState('home'); // 'home' | 'recipes' | 'diary' | 'dashboard' | 'profile'
   const [menuOpen, setMenuOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
 
@@ -377,6 +378,10 @@ const App = ({ user, userProfile, onLogout, onEditProfile }) => {
           <FoodDiary user={user} userProfile={userProfile} />
         )}
 
+        {currentView === 'recipes' && (
+          <RecipeGenerator user={user} userProfile={userProfile} />
+        )}
+
         {currentView === 'dashboard' && (
           <Dashboard user={user} userProfile={userProfile} />
         )}
@@ -424,18 +429,21 @@ const App = ({ user, userProfile, onLogout, onEditProfile }) => {
                 <p style={{ fontSize: '14px', color: '#666', marginBottom: '16px' }}>
                   Use a inteligência artificial para criar receitas personalizadas
                 </p>
-                <button style={{
-                  width: '100%',
-                  padding: '12px',
-                  background: 'linear-gradient(135deg, #DAA520 0%, #B8860B 100%)',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '8px',
-                  fontSize: '14px',
-                  fontWeight: '600',
-                  cursor: 'pointer'
-                }}>
-                  Em breve
+                <button 
+                  onClick={() => setCurrentView('recipes')}
+                  style={{
+                    width: '100%',
+                    padding: '12px',
+                    background: 'linear-gradient(135deg, #DAA520 0%, #B8860B 100%)',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '8px',
+                    fontSize: '14px',
+                    fontWeight: '600',
+                    cursor: 'pointer'
+                  }}
+                >
+                  Criar Receita
                 </button>
               </div>
 
