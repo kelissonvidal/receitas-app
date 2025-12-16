@@ -54,7 +54,8 @@ const App = ({ user, userProfile, onLogout, onEditProfile }) => {
     <div style={{
       minHeight: '100vh',
       background: 'linear-gradient(135deg, #2E7D32 0%, #1B5E20 100%)',
-      padding: '20px'
+      padding: '20px',
+      overflowX: 'hidden'
     }}>
       {/* HEADER */}
       <div style={{

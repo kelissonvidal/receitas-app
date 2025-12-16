@@ -2,6 +2,9 @@
 // RECIPE GENERATION SERVICE
 // ===================================
 
+import { collection, addDoc, getDocs, deleteDoc, doc, query, orderBy } from 'firebase/firestore';
+import { db } from './config';
+
 const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
 const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent';
 
@@ -133,15 +136,53 @@ Regras importantes:
   }
 };
 
-// Função para salvar receita favorita no Firestore (implementar depois)
+// Salvar receita favorita no Firestore
 export const saveFavoriteRecipe = async (userId, recipe) => {
-  // TODO: Implementar salvamento no Firestore
-  console.log('Saving favorite recipe:', recipe);
-  return { success: true };
+  try {
+    const favoritesRef = collection(db, `users/${userId}/favoriteRecipes`);
+    await addDoc(favoritesRef, {
+      ...recipe,
+      savedAt: new Date()
+    });
+    
+    return { success: true };
+  } catch (error) {
+    console.error('Error saving favorite recipe:', error);
+    return { success: false, error: error.message };
+  }
 };
 
-// Função para buscar receitas favoritas (implementar depois)
+// Buscar receitas favoritas
 export const getFavoriteRecipes = async (userId) => {
-  // TODO: Implementar busca no Firestore
-  return { success: true, recipes: [] };
+  try {
+    const favoritesRef = collection(db, `users/${userId}/favoriteRecipes`);
+    const q = query(favoritesRef, orderBy('savedAt', 'desc'));
+    const snapshot = await getDocs(q);
+    
+    const recipes = [];
+    snapshot.forEach(doc => {
+      recipes.push({
+        id: doc.id,
+        ...doc.data()
+      });
+    });
+    
+    return { success: true, recipes };
+  } catch (error) {
+    console.error('Error getting favorite recipes:', error);
+    return { success: true, recipes: [] }; // Retorna array vazio em caso de erro
+  }
+};
+
+// Remover receita favorita
+export const deleteFavoriteRecipe = async (userId, recipeId) => {
+  try {
+    const recipeRef = doc(db, `users/${userId}/favoriteRecipes/${recipeId}`);
+    await deleteDoc(recipeRef);
+    
+    return { success: true };
+  } catch (error) {
+    console.error('Error deleting favorite recipe:', error);
+    return { success: false, error: error.message };
+  }
 };

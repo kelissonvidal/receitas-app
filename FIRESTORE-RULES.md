@@ -1,0 +1,36 @@
+# REGRAS DO FIRESTORE - ATUALIZAR NO FIREBASE CONSOLE
+
+Firebase Console → Firestore Database → Rules
+
+```javascript
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+    
+    match /users/{userId} {
+      allow read, write: if isOwner(userId);
+      
+      match /diary/{date} {
+        allow read, write: if isOwner(userId);
+      }
+      
+      match /weightHistory/{weightId} {
+        allow read, write: if isOwner(userId);
+      }
+      
+      match /favoriteRecipes/{recipeId} {
+        allow read, write: if isOwner(userId);
+      }
+    }
+  }
+}
+```
+
+IMPORTANTE: Copie e cole essas regras no Firebase Console!

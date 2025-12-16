@@ -1,6 +1,6 @@
-import { useState } from 'react';
-import { generateRecipe } from '../firebase/recipes';
-import { ChefHat, Clock, Loader, Star, Share2, Plus } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { generateRecipe, saveFavoriteRecipe, getFavoriteRecipes, deleteFavoriteRecipe } from '../firebase/recipes';
+import { ChefHat, Clock, Loader, Star, Trash2 } from 'lucide-react';
 
 const RecipeGenerator = ({ user, userProfile }) => {
   const [ingredients, setIngredients] = useState('');
@@ -10,6 +10,21 @@ const RecipeGenerator = ({ user, userProfile }) => {
   const [recipe, setRecipe] = useState(null);
   const [loading, setLoading] = useState(false);
   const [favorites, setFavorites] = useState([]);
+  const [loadingFavorites, setLoadingFavorites] = useState(true);
+
+  // Carregar favoritos ao montar
+  useEffect(() => {
+    loadFavorites();
+  }, []);
+
+  const loadFavorites = async () => {
+    setLoadingFavorites(true);
+    const result = await getFavoriteRecipes(user.uid);
+    if (result.success) {
+      setFavorites(result.recipes);
+    }
+    setLoadingFavorites(false);
+  };
 
   const handleGenerate = async (e) => {
     e.preventDefault();
@@ -37,6 +52,11 @@ const RecipeGenerator = ({ user, userProfile }) => {
     
     if (result.success) {
       setRecipe(result.recipe);
+      // Limpar campos após gerar
+      setIngredients('');
+      setMealType('lunch');
+      setDifficulty('easy');
+      setTime('30');
     } else {
       alert('Erro ao gerar receita: ' + result.error);
     }
@@ -44,11 +64,40 @@ const RecipeGenerator = ({ user, userProfile }) => {
     setLoading(false);
   };
 
-  const addToFavorites = () => {
+  const addToFavorites = async () => {
     if (recipe) {
-      setFavorites([...favorites, { ...recipe, savedAt: new Date() }]);
-      alert('Receita salva nos favoritos! ⭐');
+      const recipeWithId = {
+        ...recipe,
+        id: Date.now().toString(),
+        savedAt: new Date().toISOString()
+      };
+      
+      const result = await saveFavoriteRecipe(user.uid, recipeWithId);
+      
+      if (result.success) {
+        setFavorites([recipeWithId, ...favorites]);
+        alert('Receita salva nos favoritos! ⭐');
+      } else {
+        alert('Erro ao salvar: ' + result.error);
+      }
     }
+  };
+
+  const removeFavorite = async (recipeId) => {
+    if (confirm('Remover receita dos favoritos?')) {
+      const result = await deleteFavoriteRecipe(user.uid, recipeId);
+      
+      if (result.success) {
+        setFavorites(favorites.filter(fav => fav.id !== recipeId));
+      } else {
+        alert('Erro ao remover: ' + result.error);
+      }
+    }
+  };
+
+  const openFavorite = (favoriteRecipe) => {
+    setRecipe(favoriteRecipe);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   return (
@@ -210,16 +259,40 @@ const RecipeGenerator = ({ user, userProfile }) => {
         <div style={styles.favoritesSection}>
           <h3 style={styles.favoritesTitle}>⭐ Receitas Favoritas ({favorites.length})</h3>
           <div style={styles.favoritesGrid}>
-            {favorites.map((fav, index) => (
-              <div key={index} style={styles.favoriteCard}>
-                <h4 style={styles.favoriteCardName}>{fav.name}</h4>
-                <div style={styles.favoriteCardInfo}>
-                  <span><Clock size={12} /> {fav.prepTime} min</span>
-                  <span>🔥 {fav.calories} kcal</span>
+            {favorites.map((fav) => (
+              <div 
+                key={fav.id} 
+                style={styles.favoriteCard}
+                className="favorite-card-hover"
+                onClick={() => openFavorite(fav)}
+              >
+                <div style={styles.favoriteCardContent}>
+                  <h4 style={styles.favoriteCardName}>{fav.name}</h4>
+                  <div style={styles.favoriteCardInfo}>
+                    <span><Clock size={12} /> {fav.prepTime} min</span>
+                    <span>🔥 {fav.calories} kcal</span>
+                  </div>
                 </div>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    removeFavorite(fav.id);
+                  }}
+                  style={styles.removeButton}
+                  title="Remover"
+                >
+                  <Trash2 size={16} />
+                </button>
               </div>
             ))}
           </div>
+        </div>
+      )}
+
+      {loadingFavorites && favorites.length === 0 && (
+        <div style={styles.loadingFavorites}>
+          <Loader size={20} className="spinner" />
+          <span style={{marginLeft: '8px', color: '#666'}}>Carregando favoritos...</span>
         </div>
       )}
     </div>
@@ -448,7 +521,15 @@ const styles = {
     border: '2px solid #f0f0f0',
     borderRadius: '8px',
     padding: '16px',
-    cursor: 'pointer'
+    cursor: 'pointer',
+    transition: 'all 0.2s',
+    position: 'relative',
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start'
+  },
+  favoriteCardContent: {
+    flex: 1
   },
   favoriteCardName: {
     fontSize: '14px',
@@ -461,7 +542,34 @@ const styles = {
     color: '#666',
     display: 'flex',
     gap: '12px'
+  },
+  removeButton: {
+    padding: '4px',
+    background: '#fee',
+    border: 'none',
+    borderRadius: '4px',
+    cursor: 'pointer',
+    color: '#c33',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center'
+  },
+  loadingFavorites: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: '20px',
+    color: '#666'
   }
 };
 
 export default RecipeGenerator;
+
+// Adicionar hover effect nos favoritos
+const hoverStyles = `
+  .favorite-card-hover:hover {
+    border-color: #2E7D32;
+    box-shadow: 0 4px 12px rgba(46, 125, 50, 0.1);
+    transform: translateY(-2px);
+  }
+`;
