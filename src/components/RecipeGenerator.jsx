@@ -97,7 +97,13 @@ const RecipeGenerator = ({ user, userProfile }) => {
 
   const openFavorite = (favoriteRecipe) => {
     setRecipe(favoriteRecipe);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    // Aguardar render e scroll até a receita
+    setTimeout(() => {
+      const recipeElement = document.getElementById('recipe-display');
+      if (recipeElement) {
+        recipeElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }, 100);
   };
 
   return (
@@ -188,7 +194,7 @@ const RecipeGenerator = ({ user, userProfile }) => {
 
       {/* RECIPE DISPLAY */}
       {recipe && (
-        <div style={styles.recipeCard}>
+        <div id="recipe-display" style={styles.recipeCard}>
           <div style={styles.recipeHeader}>
             <div>
               <h3 style={styles.recipeName}>{recipe.name}</h3>
@@ -302,7 +308,9 @@ const RecipeGenerator = ({ user, userProfile }) => {
 const styles = {
   container: {
     maxWidth: '1200px',
-    margin: '0 auto'
+    margin: '0 auto',
+    overflowX: 'hidden',
+    width: '100%'
   },
   header: {
     marginBottom: '24px'
@@ -328,7 +336,10 @@ const styles = {
     borderRadius: '12px',
     padding: '24px',
     border: '2px solid #f0f0f0',
-    marginBottom: '24px'
+    marginBottom: '24px',
+    boxSizing: 'border-box',
+    width: '100%',
+    overflowX: 'hidden'
   },
   formGroup: {
     marginBottom: '20px',
@@ -398,7 +409,10 @@ const styles = {
     borderRadius: '12px',
     padding: '24px',
     border: '2px solid #2E7D32',
-    marginBottom: '24px'
+    marginBottom: '24px',
+    boxSizing: 'border-box',
+    width: '100%',
+    overflowX: 'hidden'
   },
   recipeHeader: {
     display: 'flex',
