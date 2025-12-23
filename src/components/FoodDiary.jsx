@@ -347,7 +347,7 @@ const styles = {
     padding: '8px 12px',
     border: '2px solid #e0e0e0',
     borderRadius: '6px',
-    fontSize: '14px',
+    fontSize: '16px',
     outline: 'none',
     cursor: 'pointer',
     fontFamily: 'inherit'
@@ -400,7 +400,7 @@ const styles = {
     padding: '12px',
     border: '2px solid #e0e0e0',
     borderRadius: '8px',
-    fontSize: '15px',
+    fontSize: '16px',
     outline: 'none',
     resize: 'vertical',
     fontFamily: 'inherit'
