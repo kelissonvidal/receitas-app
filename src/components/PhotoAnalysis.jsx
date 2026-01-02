@@ -126,19 +126,34 @@ const PhotoAnalysis = ({ onSave, onCancel }) => {
           <div style={styles.uploadSection}>
             <div style={styles.uploadBox}>
               <Camera size={48} style={{color: '#2E7D32', marginBottom: '16px'}} />
-              <p style={styles.uploadText}>Tire uma foto ou selecione da galeria</p>
+              <p style={styles.uploadText}>Escolha uma foto da sua refeição</p>
               
-              <label style={styles.uploadButton}>
-                <Upload size={20} />
-                Escolher Foto
-                <input
-                  type="file"
-                  accept="image/*"
-                  capture="environment"
-                  onChange={handleFileSelect}
-                  style={{display: 'none'}}
-                />
-              </label>
+              <div style={styles.uploadButtons}>
+                {/* Botão Galeria */}
+                <label style={styles.uploadButton}>
+                  <Upload size={20} />
+                  Galeria
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleFileSelect}
+                    style={{display: 'none'}}
+                  />
+                </label>
+
+                {/* Botão Câmera (só mobile) */}
+                <label style={styles.cameraButton}>
+                  <Camera size={20} />
+                  Câmera
+                  <input
+                    type="file"
+                    accept="image/*"
+                    capture="environment"
+                    onChange={handleFileSelect}
+                    style={{display: 'none'}}
+                  />
+                </label>
+              </div>
               
               <p style={styles.uploadHint}>Máximo 5MB • JPG, PNG</p>
             </div>
@@ -378,12 +393,31 @@ const styles = {
     color: '#666',
     marginBottom: '20px'
   },
+  uploadButtons: {
+    display: 'flex',
+    gap: '12px',
+    justifyContent: 'center',
+    flexWrap: 'wrap'
+  },
   uploadButton: {
     display: 'inline-flex',
     alignItems: 'center',
     gap: '8px',
     padding: '12px 24px',
     background: 'linear-gradient(135deg, #2E7D32 0%, #1B5E20 100%)',
+    color: 'white',
+    border: 'none',
+    borderRadius: '8px',
+    fontSize: '16px',
+    fontWeight: '600',
+    cursor: 'pointer'
+  },
+  cameraButton: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: '8px',
+    padding: '12px 24px',
+    background: 'linear-gradient(135deg, #1976D2 0%, #1565C0 100%)',
     color: 'white',
     border: 'none',
     borderRadius: '8px',
