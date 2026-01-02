@@ -11,13 +11,6 @@ const PhotoAnalysis = ({ onSave, onCancel, user }) => {
   const [plateWeight, setPlateWeight] = useState('');
   const [weightHistory, setWeightHistory] = useState({ breakfast: [], lunch: [], snack: [], dinner: [] });
   const [showWeightWarning, setShowWeightWarning] = useState(false);
-  
-  // Estados para edição manual
-  const [editMode, setEditMode] = useState(false);
-  const [editedCalories, setEditedCalories] = useState('');
-  const [editedProtein, setEditedProtein] = useState('');
-  const [editedCarbs, setEditedCarbs] = useState('');
-  const [editedFat, setEditedFat] = useState('');
 
   // Carregar histórico de pesos ao montar
   useEffect(() => {
@@ -174,11 +167,6 @@ const PhotoAnalysis = ({ onSave, onCancel, user }) => {
 
     if (result.success) {
       setAnalysis(result.analysis);
-      // Preencher campos de edição
-      setEditedCalories(result.analysis.totalCalories.toString());
-      setEditedProtein(result.analysis.protein.toString());
-      setEditedCarbs(result.analysis.carbs.toString());
-      setEditedFat(result.analysis.fat.toString());
       
       // Salvar peso no histórico se foi informado
       if (plateWeight) {
@@ -194,24 +182,17 @@ const PhotoAnalysis = ({ onSave, onCancel, user }) => {
   const handleSave = () => {
     if (!analysis) return;
 
-    const finalAnalysis = editMode ? {
-      ...analysis,
-      totalCalories: parseInt(editedCalories) || analysis.totalCalories,
-      protein: parseInt(editedProtein) || analysis.protein,
-      carbs: parseInt(editedCarbs) || analysis.carbs,
-      fat: parseInt(editedFat) || analysis.fat
-    } : analysis;
-
     onSave({
       mealType,
-      description: finalAnalysis.description,
-      calories: finalAnalysis.totalCalories,
-      protein: finalAnalysis.protein,
-      carbs: finalAnalysis.carbs,
-      fat: finalAnalysis.fat,
+      description: analysis.description,
+      calories: analysis.totalCalories,
+      protein: analysis.protein,
+      carbs: analysis.carbs,
+      fat: analysis.fat,
       photoUrl: preview, // Base64 da foto
-      foods: finalAnalysis.foods,
-      analyzedAt: new Date().toISOString()
+      foods: analysis.foods,
+      analyzedAt: new Date().toISOString(),
+      plateWeight: plateWeight ? parseInt(plateWeight) : null
     });
   };
 
@@ -437,76 +418,26 @@ const PhotoAnalysis = ({ onSave, onCancel, user }) => {
 
                 {/* Nutrition Summary */}
                 <div style={styles.nutritionBox}>
-                  <div style={styles.nutritionHeader}>
-                    <h4 style={styles.nutritionTitle}>📊 Resumo Nutricional</h4>
-                    <button 
-                      onClick={() => setEditMode(!editMode)}
-                      style={styles.editButton}
-                    >
-                      <Edit size={16} />
-                      {editMode ? 'Cancelar' : 'Ajustar'}
-                    </button>
-                  </div>
+                  <h4 style={styles.nutritionTitle}>📊 Resumo Nutricional</h4>
 
-                  {!editMode ? (
-                    <div style={styles.nutritionGrid}>
-                      <div style={styles.nutritionCard}>
-                        <div style={styles.nutritionValue}>{analysis.totalCalories}</div>
-                        <div style={styles.nutritionLabel}>Calorias</div>
-                      </div>
-                      <div style={styles.nutritionCard}>
-                        <div style={styles.nutritionValue}>{analysis.protein}g</div>
-                        <div style={styles.nutritionLabel}>Proteínas</div>
-                      </div>
-                      <div style={styles.nutritionCard}>
-                        <div style={styles.nutritionValue}>{analysis.carbs}g</div>
-                        <div style={styles.nutritionLabel}>Carboidratos</div>
-                      </div>
-                      <div style={styles.nutritionCard}>
-                        <div style={styles.nutritionValue}>{analysis.fat}g</div>
-                        <div style={styles.nutritionLabel}>Gorduras</div>
-                      </div>
+                  <div style={styles.nutritionGrid}>
+                    <div style={styles.nutritionCard}>
+                      <div style={styles.nutritionValue}>{analysis.totalCalories}</div>
+                      <div style={styles.nutritionLabel}>Calorias</div>
                     </div>
-                  ) : (
-                    <div style={styles.editGrid}>
-                      <div style={styles.editField}>
-                        <label style={styles.editLabel}>Calorias</label>
-                        <input
-                          type="number"
-                          value={editedCalories}
-                          onChange={(e) => setEditedCalories(e.target.value)}
-                          style={styles.editInput}
-                        />
-                      </div>
-                      <div style={styles.editField}>
-                        <label style={styles.editLabel}>Proteínas (g)</label>
-                        <input
-                          type="number"
-                          value={editedProtein}
-                          onChange={(e) => setEditedProtein(e.target.value)}
-                          style={styles.editInput}
-                        />
-                      </div>
-                      <div style={styles.editField}>
-                        <label style={styles.editLabel}>Carboidratos (g)</label>
-                        <input
-                          type="number"
-                          value={editedCarbs}
-                          onChange={(e) => setEditedCarbs(e.target.value)}
-                          style={styles.editInput}
-                        />
-                      </div>
-                      <div style={styles.editField}>
-                        <label style={styles.editLabel}>Gorduras (g)</label>
-                        <input
-                          type="number"
-                          value={editedFat}
-                          onChange={(e) => setEditedFat(e.target.value)}
-                          style={styles.editInput}
-                        />
-                      </div>
+                    <div style={styles.nutritionCard}>
+                      <div style={styles.nutritionValue}>{analysis.protein}g</div>
+                      <div style={styles.nutritionLabel}>Proteínas</div>
                     </div>
-                  )}
+                    <div style={styles.nutritionCard}>
+                      <div style={styles.nutritionValue}>{analysis.carbs}g</div>
+                      <div style={styles.nutritionLabel}>Carboidratos</div>
+                    </div>
+                    <div style={styles.nutritionCard}>
+                      <div style={styles.nutritionValue}>{analysis.fat}g</div>
+                      <div style={styles.nutritionLabel}>Gorduras</div>
+                    </div>
+                  </div>
                 </div>
 
                 {/* Action Buttons */}

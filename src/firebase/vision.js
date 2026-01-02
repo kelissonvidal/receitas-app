@@ -123,7 +123,7 @@ const fileToBase64 = (file) => {
 };
 
 // Função para redimensionar imagem antes de enviar (otimização)
-export const resizeImage = (file, maxWidth = 1024) => {
+export const resizeImage = (file, maxWidth = 800) => {
   return new Promise((resolve) => {
     const reader = new FileReader();
     reader.onload = (e) => {
@@ -145,7 +145,7 @@ export const resizeImage = (file, maxWidth = 1024) => {
 
         canvas.toBlob((blob) => {
           resolve(new File([blob], file.name, { type: 'image/jpeg' }));
-        }, 'image/jpeg', 0.85);
+        }, 'image/jpeg', 0.7); // Qualidade 70%
       };
       img.src = e.target.result;
     };
