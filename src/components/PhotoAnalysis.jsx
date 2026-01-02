@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Camera, Upload, X, Loader, Check, Edit } from 'lucide-react';
 import { analyzeFood, resizeImage } from '../firebase/vision';
 
@@ -21,11 +21,15 @@ const PhotoAnalysis = ({ onSave, onCancel, user }) => {
 
   // Carregar histórico de pesos ao montar
   useEffect(() => {
-    loadWeightHistory();
-  }, []);
+    if (user?.uid) {
+      loadWeightHistory();
+    }
+  }, [user]);
 
   const loadWeightHistory = async () => {
     try {
+      if (!user?.uid) return;
+      
       const history = localStorage.getItem(`plateWeights_${user.uid}`);
       if (history) {
         setWeightHistory(JSON.parse(history));
@@ -36,6 +40,8 @@ const PhotoAnalysis = ({ onSave, onCancel, user }) => {
   };
 
   const saveWeightToHistory = (type, weight) => {
+    if (!user?.uid) return;
+    
     const newHistory = { ...weightHistory };
     if (!newHistory[type]) newHistory[type] = [];
     
