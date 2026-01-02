@@ -352,6 +352,7 @@ const FoodDiary = ({ user, userProfile }) => {
       {/* PHOTO ANALYSIS MODAL */}
       {showPhotoAnalysis && (
         <PhotoAnalysis
+          user={user}
           onSave={handleSavePhotoMeal}
           onCancel={() => setShowPhotoAnalysis(false)}
         />

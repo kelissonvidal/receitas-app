@@ -2,12 +2,15 @@ import { useState } from 'react';
 import { Camera, Upload, X, Loader, Check, Edit } from 'lucide-react';
 import { analyzeFood, resizeImage } from '../firebase/vision';
 
-const PhotoAnalysis = ({ onSave, onCancel }) => {
+const PhotoAnalysis = ({ onSave, onCancel, user }) => {
   const [selectedFile, setSelectedFile] = useState(null);
   const [preview, setPreview] = useState(null);
   const [analyzing, setAnalyzing] = useState(false);
   const [analysis, setAnalysis] = useState(null);
   const [mealType, setMealType] = useState('lunch');
+  const [plateWeight, setPlateWeight] = useState('');
+  const [weightHistory, setWeightHistory] = useState({ breakfast: [], lunch: [], snack: [], dinner: [] });
+  const [showWeightWarning, setShowWeightWarning] = useState(false);
   
   // Estados para edição manual
   const [editMode, setEditMode] = useState(false);
@@ -15,6 +18,106 @@ const PhotoAnalysis = ({ onSave, onCancel }) => {
   const [editedProtein, setEditedProtein] = useState('');
   const [editedCarbs, setEditedCarbs] = useState('');
   const [editedFat, setEditedFat] = useState('');
+
+  // Carregar histórico de pesos ao montar
+  useEffect(() => {
+    loadWeightHistory();
+  }, []);
+
+  const loadWeightHistory = async () => {
+    try {
+      const history = localStorage.getItem(`plateWeights_${user.uid}`);
+      if (history) {
+        setWeightHistory(JSON.parse(history));
+      }
+    } catch (error) {
+      console.error('Error loading weight history:', error);
+    }
+  };
+
+  const saveWeightToHistory = (type, weight) => {
+    const newHistory = { ...weightHistory };
+    if (!newHistory[type]) newHistory[type] = [];
+    
+    newHistory[type].unshift(weight);
+    // Manter últimos 10 registros
+    newHistory[type] = newHistory[type].slice(0, 10);
+    
+    setWeightHistory(newHistory);
+    localStorage.setItem(`plateWeights_${user.uid}`, JSON.stringify(newHistory));
+  };
+
+  const getAverageWeight = (type) => {
+    const weights = weightHistory[type] || [];
+    if (weights.length === 0) return null;
+    const sum = weights.reduce((acc, w) => acc + w, 0);
+    return Math.round(sum / weights.length);
+  };
+
+  const getSuggestedWeight = () => {
+    const avg = getAverageWeight(mealType);
+    if (avg) return avg;
+    
+    // Pesos médios por refeição
+    const defaults = {
+      breakfast: 200,
+      lunch: 450,
+      snack: 100,
+      dinner: 400
+    };
+    return defaults[mealType] || 350;
+  };
+
+  const validateWeight = (weight) => {
+    const num = parseInt(weight);
+    if (isNaN(num)) return true;
+    
+    const limits = {
+      breakfast: { min: 50, max: 500 },
+      lunch: { min: 100, max: 1000 },
+      snack: { min: 20, max: 300 },
+      dinner: { min: 100, max: 1000 }
+    };
+    
+    const { min, max } = limits[mealType];
+    if (num < min || num > max) {
+      setShowWeightWarning(true);
+      return false;
+    }
+    
+    setShowWeightWarning(false);
+    return true;
+  };
+
+  const getWeightWarningMessage = () => {
+    const num = parseInt(plateWeight);
+    const limits = {
+      breakfast: { min: 50, max: 500, typical: '150-300g' },
+      lunch: { min: 100, max: 1000, typical: '300-600g' },
+      snack: { min: 20, max: 300, typical: '50-150g' },
+      dinner: { min: 100, max: 1000, typical: '300-600g' }
+    };
+    
+    const { min, max, typical } = limits[mealType];
+    
+    if (num < min) {
+      return `Peso muito baixo para ${getMealTypeName()}. Típico: ${typical}`;
+    }
+    if (num > max) {
+      return `Peso muito alto para ${getMealTypeName()}. Típico: ${typical}`;
+    }
+    return '';
+  };
+
+  const getMealTypeName = () => {
+    const names = {
+      breakfast: 'café da manhã',
+      lunch: 'almoço',
+      snack: 'lanche',
+      dinner: 'jantar'
+    };
+    return names[mealType];
+  };
 
   const handleFileSelect = async (e) => {
     const file = e.target.files[0];
@@ -50,10 +153,18 @@ const PhotoAnalysis = ({ onSave, onCancel }) => {
       return;
     }
 
+    // Validar peso se informado
+    if (plateWeight && !validateWeight(plateWeight)) {
+      const proceed = confirm(
+        `${getWeightWarningMessage()}\n\nDeseja continuar mesmo assim?`
+      );
+      if (!proceed) return;
+    }
+
     setAnalyzing(true);
     setAnalysis(null);
 
-    const result = await analyzeFood(selectedFile);
+    const result = await analyzeFood(selectedFile, plateWeight ? parseInt(plateWeight) : null);
 
     if (result.success) {
       setAnalysis(result.analysis);
@@ -62,6 +173,11 @@ const PhotoAnalysis = ({ onSave, onCancel }) => {
       setEditedProtein(result.analysis.protein.toString());
       setEditedCarbs(result.analysis.carbs.toString());
       setEditedFat(result.analysis.fat.toString());
+      
+      // Salvar peso no histórico se foi informado
+      if (plateWeight) {
+        saveWeightToHistory(mealType, parseInt(plateWeight));
+      }
     } else {
       alert('Erro ao analisar foto: ' + result.error);
     }
@@ -193,11 +309,60 @@ const PhotoAnalysis = ({ onSave, onCancel }) => {
               </select>
             </div>
 
+            {/* Plate Weight Input */}
+            <div style={styles.weightSection}>
+              <label style={styles.label}>⚖️ Peso do Prato (opcional)</label>
+              <div style={styles.weightInputContainer}>
+                <input
+                  type="number"
+                  placeholder="Ex: 450"
+                  value={plateWeight}
+                  onChange={(e) => {
+                    setPlateWeight(e.target.value);
+                    if (e.target.value) validateWeight(e.target.value);
+                  }}
+                  style={{
+                    ...styles.weightInput,
+                    ...(showWeightWarning && styles.weightInputWarning)
+                  }}
+                />
+                <span style={styles.weightUnit}>gramas</span>
+              </div>
+              
+              {/* Sugestão baseada em histórico */}
+              {!plateWeight && (
+                <div style={styles.weightSuggestion}>
+                  💡 Sugestão: <button 
+                    onClick={() => setPlateWeight(getSuggestedWeight().toString())}
+                    style={styles.suggestionButton}
+                  >
+                    {getSuggestedWeight()}g
+                  </button>
+                  {getAverageWeight(mealType) && (
+                    <span style={styles.avgText}>
+                      (sua média: {getAverageWeight(mealType)}g)
+                    </span>
+                  )}
+                </div>
+              )}
+              
+              {/* Warning */}
+              {showWeightWarning && plateWeight && (
+                <div style={styles.warningBox}>
+                  ⚠️ {getWeightWarningMessage()}
+                </div>
+              )}
+              
+              <p style={styles.weightHint}>
+                Informar o peso ajuda a IA calcular com mais precisão
+              </p>
+            </div>
+
             {/* Analyze Button */}
             {!analysis && !analyzing && (
               <button onClick={handleAnalyze} style={styles.analyzeButton}>
                 <Camera size={20} />
-                Analisar com IA
+                {plateWeight ? `Analisar ${plateWeight}g com IA` : 'Analisar com IA'}
               </button>
             )}
 
@@ -206,7 +371,12 @@ const PhotoAnalysis = ({ onSave, onCancel }) => {
               <div style={styles.loadingBox}>
                 <Loader size={32} className="spinner" style={{color: '#2E7D32'}} />
                 <p style={styles.loadingText}>Analisando foto...</p>
-                <p style={styles.loadingSubtext}>Identificando alimentos e calculando nutrientes</p>
+                <p style={styles.loadingSubtext}>
+                  {plateWeight 
+                    ? `Considerando peso de ${plateWeight}g no cálculo`
+                    : 'Identificando alimentos e calculando nutrientes'
+                  }
+                </p>
               </div>
             )}
 
@@ -230,13 +400,30 @@ const PhotoAnalysis = ({ onSave, onCancel }) => {
 
                 {/* Foods List */}
                 <div style={styles.foodsSection}>
-                  <h4 style={styles.sectionTitle}>Alimentos Detectados:</h4>
+                  <h4 style={styles.sectionTitle}>
+                    Alimentos Detectados:
+                    {analysis.totalWeight && (
+                      <span style={styles.totalWeightBadge}>
+                        ⚖️ {analysis.totalWeight}g total
+                      </span>
+                    )}
+                  </h4>
                   <div style={styles.foodsList}>
                     {analysis.foods.map((food, index) => (
                       <div key={index} style={styles.foodItem}>
-                        <span style={styles.foodName}>{food.name}</span>
-                        <span style={styles.foodPortion}>{food.portion}</span>
-                        <span style={styles.foodCalories}>{food.calories} kcal</span>
+                        <div style={styles.foodItemHeader}>
+                          <span style={styles.foodName}>{food.name}</span>
+                          {food.percentage && (
+                            <span style={styles.foodPercentage}>{food.percentage}%</span>
+                          )}
+                        </div>
+                        <div style={styles.foodItemDetails}>
+                          {food.weight && (
+                            <span style={styles.foodWeight}>⚖️ {food.weight}g</span>
+                          )}
+                          <span style={styles.foodPortion}>{food.portion}</span>
+                          <span style={styles.foodCalories}>{food.calories} kcal</span>
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -455,6 +642,69 @@ const styles = {
   mealTypeSection: {
     marginBottom: '20px'
   },
+  weightSection: {
+    marginBottom: '20px'
+  },
+  weightInputContainer: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px'
+  },
+  weightInput: {
+    flex: 1,
+    padding: '12px',
+    border: '2px solid #e0e0e0',
+    borderRadius: '8px',
+    fontSize: '16px',
+    outline: 'none',
+    boxSizing: 'border-box'
+  },
+  weightInputWarning: {
+    borderColor: '#F57C00'
+  },
+  weightUnit: {
+    fontSize: '14px',
+    color: '#666',
+    fontWeight: '600'
+  },
+  weightSuggestion: {
+    marginTop: '8px',
+    fontSize: '13px',
+    color: '#666',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px',
+    flexWrap: 'wrap'
+  },
+  suggestionButton: {
+    padding: '4px 12px',
+    background: '#f0f0f0',
+    border: '2px solid #2E7D32',
+    borderRadius: '6px',
+    fontSize: '13px',
+    fontWeight: '700',
+    color: '#2E7D32',
+    cursor: 'pointer'
+  },
+  avgText: {
+    fontSize: '12px',
+    color: '#999'
+  },
+  warningBox: {
+    marginTop: '8px',
+    padding: '8px 12px',
+    background: '#FFF3E0',
+    border: '1px solid #F57C00',
+    borderRadius: '6px',
+    fontSize: '13px',
+    color: '#E65100'
+  },
+  weightHint: {
+    fontSize: '12px',
+    color: '#999',
+    marginTop: '8px',
+    marginBottom: 0
+  },
   label: {
     display: 'block',
     fontSize: '14px',
@@ -551,20 +801,52 @@ const styles = {
   foodsList: {
     display: 'flex',
     flexDirection: 'column',
-    gap: '8px'
+    gap: '12px'
+  },
+  totalWeightBadge: {
+    marginLeft: '12px',
+    padding: '4px 12px',
+    background: '#E8F5E9',
+    borderRadius: '12px',
+    fontSize: '12px',
+    fontWeight: '600',
+    color: '#2E7D32'
   },
   foodItem: {
-    display: 'grid',
-    gridTemplateColumns: '1fr auto auto',
-    gap: '12px',
-    padding: '10px 12px',
+    padding: '12px',
     background: '#f9f9f9',
-    borderRadius: '6px',
-    fontSize: '13px'
+    borderRadius: '8px',
+    border: '1px solid #e0e0e0'
+  },
+  foodItemHeader: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: '8px'
   },
   foodName: {
+    fontWeight: '700',
+    color: '#333',
+    fontSize: '14px'
+  },
+  foodPercentage: {
+    padding: '2px 8px',
+    background: '#2E7D32',
+    color: 'white',
+    borderRadius: '12px',
+    fontSize: '11px',
+    fontWeight: '700'
+  },
+  foodItemDetails: {
+    display: 'flex',
+    gap: '12px',
+    fontSize: '12px',
+    color: '#666',
+    flexWrap: 'wrap'
+  },
+  foodWeight: {
     fontWeight: '600',
-    color: '#333'
+    color: '#1976D2'
   },
   foodPortion: {
     color: '#666'
@@ -607,7 +889,7 @@ const styles = {
   },
   nutritionGrid: {
     display: 'grid',
-    gridTemplateColumns: 'repeat(4, 1fr)',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(80px, 1fr))',
     gap: '12px'
   },
   nutritionCard: {

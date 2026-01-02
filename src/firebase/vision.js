@@ -5,23 +5,30 @@
 const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
 const GEMINI_VISION_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent';
 
-export const analyzeFood = async (imageFile) => {
+export const analyzeFood = async (imageFile, plateWeight = null) => {
   try {
     // Converter imagem para base64
     const base64Image = await fileToBase64(imageFile);
     
+    const weightInfo = plateWeight 
+      ? `\n\nIMPORTANTE: O prato pesa ${plateWeight}g no total. Use este peso como referência para calcular as porções de cada alimento proporcionalmente.`
+      : '';
+    
     const prompt = `Você é um nutricionista especializado em análise visual de alimentos.
 
-Analise esta foto de refeição e forneça informações nutricionais detalhadas.
+Analise esta foto de refeição e forneça informações nutricionais detalhadas.${weightInfo}
 
 IMPORTANTE: Responda APENAS com um JSON válido (sem markdown, sem \`\`\`json), no seguinte formato:
 
 {
   "description": "Descrição detalhada do que você vê no prato",
+  "totalWeight": ${plateWeight || 'peso estimado em gramas'},
   "foods": [
     {
       "name": "Nome do alimento",
       "portion": "Porção estimada (ex: 150g, 1 unidade, 1 xícara)",
+      "weight": peso em gramas,
+      "percentage": porcentagem do prato (ex: 40 para 40%),
       "calories": 200
     }
   ],
@@ -34,11 +41,13 @@ IMPORTANTE: Responda APENAS com um JSON válido (sem markdown, sem \`\`\`json), 
 
 Regras importantes:
 1. Identifique TODOS os alimentos visíveis
-2. Estime porções realistas baseadas no tamanho visual
-3. Calcule calorias e macros com precisão
-4. Se não tiver certeza, indique "confidence": "medium" ou "low"
-5. Seja específico (ex: "arroz branco" não apenas "arroz")
-6. Considere preparações (grelhado, frito, cozido)`;
+2. ${plateWeight ? `CALCULE as porções baseado no peso total de ${plateWeight}g informado` : 'Estime porções realistas baseadas no tamanho visual'}
+3. Calcule a PORCENTAGEM que cada alimento ocupa no prato
+4. Calcule o PESO de cada alimento (se peso total foi informado, use proporções; senão estime)
+5. Calcule calorias e macros com precisão
+6. Se não tiver certeza, indique "confidence": "medium" ou "low"
+7. Seja específico (ex: "arroz branco" não apenas "arroz")
+8. Considere preparações (grelhado, frito, cozido)`;
 
     const response = await fetch(`${GEMINI_VISION_URL}?key=${GEMINI_API_KEY}`, {
       method: 'POST',
