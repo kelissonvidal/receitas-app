@@ -10,10 +10,33 @@ import { db } from './config';
 // ===================================
 export const addMealByText = async (userId, mealData) => {
   try {
-    const { description, type } = mealData; // type: breakfast|lunch|snack|dinner
+    const { 
+      description, 
+      type,
+      // Dados manuais (quando vem de foto)
+      manualCalories,
+      manualProtein,
+      manualCarbs,
+      manualFat,
+      photoUrl,
+      foods,
+      analyzedAt
+    } = mealData;
     
-    // Usar Gemini para analisar texto e extrair informações nutricionais
-    const analysisPrompt = `Analise esta refeição e retorne APENAS um JSON válido com as informações nutricionais:
+    let nutritionData;
+    
+    // Se tem dados manuais (foto), usa eles
+    if (manualCalories !== undefined) {
+      nutritionData = {
+        foods: foods || [],
+        totalCalories: manualCalories,
+        totalProtein: manualProtein,
+        totalCarbs: manualCarbs,
+        totalFat: manualFat
+      };
+    } else {
+      // Usar Gemini para analisar texto e extrair informações nutricionais
+      const analysisPrompt = `Analise esta refeição e retorne APENAS um JSON válido com as informações nutricionais:
 
 Refeição: "${description}"
 
@@ -37,42 +60,43 @@ Retorne no formato:
 
 Seja preciso nas estimativas. Use valores médios de porções comuns.`;
 
-    const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
-    
-    if (!GEMINI_API_KEY) {
-      throw new Error('API Key do Gemini não configurada');
-    }
-    
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${GEMINI_API_KEY}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: analysisPrompt }] }]
-        })
+      const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
+      
+      if (!GEMINI_API_KEY) {
+        throw new Error('API Key do Gemini não configurada');
       }
-    );
+      
+      const response = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${GEMINI_API_KEY}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: analysisPrompt }] }]
+          })
+        }
+      );
 
-    const data = await response.json();
-    
-    // Verificar se há erro na resposta
-    if (!response.ok) {
-      console.error('Gemini API error:', data);
-      throw new Error(data.error?.message || 'Erro ao comunicar com IA');
+      const data = await response.json();
+      
+      // Verificar se há erro na resposta
+      if (!response.ok) {
+        console.error('Gemini API error:', data);
+        throw new Error(data.error?.message || 'Erro ao comunicar com IA');
+      }
+      
+      if (!data.candidates || !data.candidates[0] || !data.candidates[0].content) {
+        console.error('Invalid Gemini response:', data);
+        throw new Error('Resposta inválida da IA');
+      }
+      
+      const analysisText = data.candidates[0].content.parts[0].text
+        .replace(/```json/g, '')
+        .replace(/```/g, '')
+        .trim();
+      
+      nutritionData = JSON.parse(analysisText);
     }
-    
-    if (!data.candidates || !data.candidates[0] || !data.candidates[0].content) {
-      console.error('Invalid Gemini response:', data);
-      throw new Error('Resposta inválida da IA');
-    }
-    
-    const analysisText = data.candidates[0].content.parts[0].text
-      .replace(/```json/g, '')
-      .replace(/```/g, '')
-      .trim();
-    
-    const nutritionData = JSON.parse(analysisText);
     
     // Criar entrada no diário
     const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
@@ -83,12 +107,14 @@ Seja preciso nas estimativas. Use valores médios de porções comuns.`;
       type,
       time: new Date(),
       description,
-      method: 'text',
+      method: photoUrl ? 'photo' : 'text',
       foods: nutritionData.foods,
       totalCalories: nutritionData.totalCalories,
       totalProtein: nutritionData.totalProtein,
       totalCarbs: nutritionData.totalCarbs,
-      totalFat: nutritionData.totalFat
+      totalFat: nutritionData.totalFat,
+      ...(photoUrl && { photoUrl }),
+      ...(analyzedAt && { analyzedAt })
     };
     
     // Buscar diário do dia ou criar novo

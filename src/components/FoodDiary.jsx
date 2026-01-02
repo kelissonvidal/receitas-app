@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { addMealByText, getTodayDiary, getDiaryByDate, calculateDeficitSurplus, deleteMeal } from '../firebase/diary';
-import { Loader, Plus, Trash2, TrendingUp, TrendingDown, Minus } from 'lucide-react';
+import { Loader, Plus, Trash2, TrendingUp, TrendingDown, Minus, Camera } from 'lucide-react';
+import PhotoAnalysis from './PhotoAnalysis';
 
 const FoodDiary = ({ user, userProfile }) => {
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
@@ -9,6 +10,7 @@ const FoodDiary = ({ user, userProfile }) => {
   const [loading, setLoading] = useState(true);
   const [adding, setAdding] = useState(false);
   const [showForm, setShowForm] = useState(false);
+  const [showPhotoAnalysis, setShowPhotoAnalysis] = useState(false);
   
   const [mealData, setMealData] = useState({
     description: '',
@@ -67,6 +69,38 @@ const FoodDiary = ({ user, userProfile }) => {
     setAdding(false);
   };
 
+  const handleSavePhotoMeal = async (photoData) => {
+    setAdding(true);
+    setShowPhotoAnalysis(false);
+    
+    try {
+      const result = await addMealByText(user.uid, {
+        description: photoData.description,
+        type: photoData.mealType,
+        // Passar dados já calculados
+        manualCalories: photoData.calories,
+        manualProtein: photoData.protein,
+        manualCarbs: photoData.carbs,
+        manualFat: photoData.fat,
+        photoUrl: photoData.photoUrl,
+        foods: photoData.foods,
+        analyzedAt: photoData.analyzedAt
+      });
+      
+      if (result.success) {
+        await loadDiary();
+        alert('Refeição adicionada com sucesso! 📸');
+      } else {
+        alert('Erro ao salvar: ' + (result.error || 'Erro desconhecido'));
+      }
+    } catch (error) {
+      console.error('Error saving photo meal:', error);
+      alert('Erro ao salvar refeição. Tente novamente.');
+    }
+    
+    setAdding(false);
+  };
+
   const handleDeleteMeal = async (mealId) => {
     if (!confirm('Deletar esta refeição?')) return;
     
@@ -119,10 +153,16 @@ const FoodDiary = ({ user, userProfile }) => {
             style={styles.dateInput}
           />
         </div>
-        <button onClick={() => setShowForm(!showForm)} style={styles.addButton}>
-          <Plus size={20} />
-          Adicionar Refeição
-        </button>
+        <div style={{display: 'flex', gap: '12px'}}>
+          <button onClick={() => setShowForm(!showForm)} style={styles.addButton}>
+            <Plus size={20} />
+            Adicionar Refeição
+          </button>
+          <button onClick={() => setShowPhotoAnalysis(true)} style={styles.photoButton}>
+            <Camera size={20} />
+            Analisar Foto
+          </button>
+        </div>
       </div>
 
       {/* FORM */}
@@ -308,6 +348,14 @@ const FoodDiary = ({ user, userProfile }) => {
           </div>
         )}
       </div>
+
+      {/* PHOTO ANALYSIS MODAL */}
+      {showPhotoAnalysis && (
+        <PhotoAnalysis
+          onSave={handleSavePhotoMeal}
+          onCancel={() => setShowPhotoAnalysis(false)}
+        />
+      )}
     </div>
   );
 };
@@ -355,6 +403,19 @@ const styles = {
   addButton: {
     padding: '12px 20px',
     background: 'linear-gradient(135deg, #DAA520 0%, #B8860B 100%)',
+    color: 'white',
+    border: 'none',
+    borderRadius: '8px',
+    fontSize: '15px',
+    fontWeight: '700',
+    cursor: 'pointer',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px'
+  },
+  photoButton: {
+    padding: '12px 20px',
+    background: 'linear-gradient(135deg, #2E7D32 0%, #1B5E20 100%)',
     color: 'white',
     border: 'none',
     borderRadius: '8px',
