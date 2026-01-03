@@ -122,8 +122,8 @@ const fileToBase64 = (file) => {
   });
 };
 
-// Função para redimensionar imagem antes de enviar (otimização)
-export const resizeImage = (file, maxWidth = 800) => {
+// Função para redimensionar imagem antes de enviar (otimização AGRESSIVA)
+export const resizeImage = (file, maxWidth = 600) => {
   return new Promise((resolve) => {
     const reader = new FileReader();
     reader.onload = (e) => {
@@ -133,6 +133,7 @@ export const resizeImage = (file, maxWidth = 800) => {
         let width = img.width;
         let height = img.height;
 
+        // Reduzir MUITO mais
         if (width > maxWidth) {
           height = (height * maxWidth) / width;
           width = maxWidth;
@@ -141,11 +142,17 @@ export const resizeImage = (file, maxWidth = 800) => {
         canvas.width = width;
         canvas.height = height;
         const ctx = canvas.getContext('2d');
+        
+        // Melhorar qualidade do resize
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = 'high';
+        
         ctx.drawImage(img, 0, 0, width, height);
 
+        // Qualidade MUITO reduzida (50%)
         canvas.toBlob((blob) => {
           resolve(new File([blob], file.name, { type: 'image/jpeg' }));
-        }, 'image/jpeg', 0.7); // Qualidade 70%
+        }, 'image/jpeg', 0.5);
       };
       img.src = e.target.result;
     };

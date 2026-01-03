@@ -182,17 +182,67 @@ const PhotoAnalysis = ({ onSave, onCancel, user }) => {
   const handleSave = () => {
     if (!analysis) return;
 
-    onSave({
-      mealType,
-      description: analysis.description,
-      calories: analysis.totalCalories,
-      protein: analysis.protein,
-      carbs: analysis.carbs,
-      fat: analysis.fat,
-      photoUrl: preview, // Base64 da foto
-      foods: analysis.foods,
-      analyzedAt: new Date().toISOString(),
-      plateWeight: plateWeight ? parseInt(plateWeight) : null
+    // Verificar tamanho da foto em base64
+    const base64Size = preview.length * 0.75; // Aproximado em bytes
+    const maxSize = 800000; // 800KB (deixando margem)
+
+    if (base64Size > maxSize) {
+      alert(`⚠️ Foto muito grande (${Math.round(base64Size/1024)}KB).\n\nComprimindo mais...`);
+      
+      // Comprimir mais agressivamente
+      compressImageMore(preview).then(compressedPreview => {
+        onSave({
+          mealType,
+          description: analysis.description,
+          calories: analysis.totalCalories,
+          protein: analysis.protein,
+          carbs: analysis.carbs,
+          fat: analysis.fat,
+          photoUrl: compressedPreview,
+          foods: analysis.foods,
+          analyzedAt: new Date().toISOString(),
+          plateWeight: plateWeight ? parseInt(plateWeight) : null
+        });
+      });
+    } else {
+      onSave({
+        mealType,
+        description: analysis.description,
+        calories: analysis.totalCalories,
+        protein: analysis.protein,
+        carbs: analysis.carbs,
+        fat: analysis.fat,
+        photoUrl: preview,
+        foods: analysis.foods,
+        analyzedAt: new Date().toISOString(),
+        plateWeight: plateWeight ? parseInt(plateWeight) : null
+      });
+    }
+  };
+
+  const compressImageMore = (base64) => {
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        
+        // Reduzir para 400px
+        let width = 400;
+        let height = (img.height * 400) / img.width;
+        
+        canvas.width = width;
+        canvas.height = height;
+        
+        const ctx = canvas.getContext('2d');
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = 'medium';
+        ctx.drawImage(img, 0, 0, width, height);
+        
+        // Qualidade 40%
+        const compressed = canvas.toDataURL('image/jpeg', 0.4);
+        resolve(compressed);
+      };
+      img.src = base64;
     });
   };
 
