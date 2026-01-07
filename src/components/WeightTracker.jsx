@@ -11,12 +11,25 @@ const WeightTracker = ({ user, userProfile, onUpdate }) => {
   const [filter, setFilter] = useState('30'); // '7', '30', '90', 'all'
   const [loadingHistory, setLoadingHistory] = useState(false);
 
+  const loadHistory = async () => {
+    if (!user?.uid) return;
+    
+    setLoadingHistory(true);
+    const result = await getWeightHistory(user.uid);
+    if (result.success) {
+      setHistory(result.history);
+      setShowHistory(true);
+    }
+    setLoadingHistory(false);
+  };
+
   // Carregar histórico ao montar
   useEffect(() => {
     if (user?.uid) {
       loadHistory();
     }
-  }, [user]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.uid]);
 
   const handleSaveWeight = async (e) => {
     e.preventDefault();
@@ -40,16 +53,6 @@ const WeightTracker = ({ user, userProfile, onUpdate }) => {
     }
     
     setLoading(false);
-  };
-
-  const loadHistory = async () => {
-    setLoadingHistory(true);
-    const result = await getWeightHistory(user.uid);
-    if (result.success) {
-      setHistory(result.history);
-      setShowHistory(true);
-    }
-    setLoadingHistory(false);
   };
 
   const formatDate = (timestamp) => {
