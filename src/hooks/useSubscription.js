@@ -19,23 +19,43 @@ export const useSubscription = (userId) => {
     const unsubscribe = onSnapshot(
       doc(db, 'users', userId, 'subscription', 'current'),
       (docSnap) => {
+        console.log('📊 Subscription snapshot:', {
+          exists: docSnap.exists(),
+          data: docSnap.data()
+        });
+
         if (docSnap.exists()) {
           const data = docSnap.data();
           setSubscription(data);
           
           const now = new Date();
+          console.log('⏰ Data atual:', now);
           
           // Verificar trial
-          if (data.status === 'trial' && data.trialEnd) {
-            const trialEnd = data.trialEnd.toDate();
-            const daysLeft = Math.ceil((trialEnd - now) / (1000 * 60 * 60 * 24));
+          if (data.status === 'trial') {
+            console.log('🎁 Status é TRIAL');
             
-            if (daysLeft > 0) {
-              setIsInTrial(true);
-              setDaysLeftInTrial(daysLeft);
-              setIsPremium(true); // Trial tem acesso premium
+            if (data.trialEnd) {
+              const trialEnd = data.trialEnd.toDate();
+              console.log('📅 Trial termina em:', trialEnd);
+              
+              const diffMs = trialEnd - now;
+              const daysLeft = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+              console.log('⏳ Dias restantes:', daysLeft);
+              
+              if (daysLeft > 0) {
+                console.log('✅ TRIAL ATIVO - Dando acesso premium');
+                setIsInTrial(true);
+                setDaysLeftInTrial(daysLeft);
+                setIsPremium(true);
+              } else {
+                console.log('❌ TRIAL EXPIRADO');
+                setIsInTrial(false);
+                setDaysLeftInTrial(0);
+                setIsPremium(false);
+              }
             } else {
-              // Trial expirado
+              console.log('⚠️ trialEnd não existe no documento!');
               setIsInTrial(false);
               setDaysLeftInTrial(0);
               setIsPremium(false);
@@ -43,6 +63,7 @@ export const useSubscription = (userId) => {
           }
           // Assinatura ativa
           else if (data.status === 'active') {
+            console.log('💎 Status é ACTIVE');
             const expiresAt = data.expiresAt?.toDate();
             
             if (!expiresAt || expiresAt > now) {
@@ -55,18 +76,20 @@ export const useSubscription = (userId) => {
           }
           // Vitalício
           else if (data.status === 'lifetime') {
+            console.log('👑 Status é LIFETIME');
             setIsPremium(true);
             setIsInTrial(false);
             setDaysLeftInTrial(0);
           }
           // Outros status
           else {
+            console.log('⚠️ Status desconhecido:', data.status);
             setIsPremium(false);
             setIsInTrial(false);
             setDaysLeftInTrial(0);
           }
         } else {
-          // Documento não existe - usuário muito antigo sem subscription
+          console.log('❌ Documento de subscription NÃO EXISTE');
           setSubscription(null);
           setIsPremium(false);
           setIsInTrial(false);
@@ -76,7 +99,7 @@ export const useSubscription = (userId) => {
         setLoading(false);
       },
       (error) => {
-        console.error('Error loading subscription:', error);
+        console.error('❌ Error loading subscription:', error);
         setLoading(false);
       }
     );
