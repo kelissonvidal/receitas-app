@@ -23,56 +23,54 @@ export const useSubscription = (userId) => {
           const data = docSnap.data();
           setSubscription(data);
           
-          // Verificar status
           const now = new Date();
-          const expiresAt = data.expiresAt?.toDate();
-          const createdAt = data.createdAt?.toDate();
           
-          // Trial: 3 dias após criação da conta
-          if (createdAt) {
-            const trialEnd = new Date(createdAt.getTime() + (3 * 24 * 60 * 60 * 1000));
+          // Verificar trial
+          if (data.status === 'trial' && data.trialEnd) {
+            const trialEnd = data.trialEnd.toDate();
             const daysLeft = Math.ceil((trialEnd - now) / (1000 * 60 * 60 * 24));
             
-            if (daysLeft > 0 && data.status !== 'active') {
+            if (daysLeft > 0) {
               setIsInTrial(true);
               setDaysLeftInTrial(daysLeft);
               setIsPremium(true); // Trial tem acesso premium
             } else {
+              // Trial expirado
               setIsInTrial(false);
               setDaysLeftInTrial(0);
+              setIsPremium(false);
             }
           }
-          
           // Assinatura ativa
-          if (data.status === 'active') {
+          else if (data.status === 'active') {
+            const expiresAt = data.expiresAt?.toDate();
+            
             if (!expiresAt || expiresAt > now) {
               setIsPremium(true);
+              setIsInTrial(false);
             } else {
               setIsPremium(false);
-            }
-          } else if (data.status === 'lifetime') {
-            setIsPremium(true);
-          } else {
-            if (!isInTrial) {
-              setIsPremium(false);
+              setIsInTrial(false);
             }
           }
+          // Vitalício
+          else if (data.status === 'lifetime') {
+            setIsPremium(true);
+            setIsInTrial(false);
+            setDaysLeftInTrial(0);
+          }
+          // Outros status
+          else {
+            setIsPremium(false);
+            setIsInTrial(false);
+            setDaysLeftInTrial(0);
+          }
         } else {
-          // Usuário novo - criar documento de trial
-          const createdAt = new Date();
-          setSubscription({
-            status: 'trial',
-            plan: null,
-            createdAt,
-            expiresAt: null
-          });
-          
-          const trialEnd = new Date(createdAt.getTime() + (3 * 24 * 60 * 60 * 1000));
-          const daysLeft = Math.ceil((trialEnd - new Date()) / (1000 * 60 * 60 * 24));
-          
-          setIsInTrial(true);
-          setDaysLeftInTrial(daysLeft);
-          setIsPremium(true);
+          // Documento não existe - usuário muito antigo sem subscription
+          setSubscription(null);
+          setIsPremium(false);
+          setIsInTrial(false);
+          setDaysLeftInTrial(0);
         }
         
         setLoading(false);

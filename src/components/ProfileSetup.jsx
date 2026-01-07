@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import { saveUserProfile } from '../firebase/profile';
+import { doc, setDoc } from 'firebase/firestore';
+import { db } from '../firebase/config';
 import { Loader, ArrowRight, ArrowLeft, Check } from 'lucide-react';
 
 const ProfileSetup = ({ user, onComplete }) => {
@@ -50,6 +52,7 @@ const ProfileSetup = ({ user, onComplete }) => {
     
     setLoading(true);
     
+    // Salvar perfil
     const result = await saveUserProfile(user.uid, {
       age: parseInt(formData.age),
       sex: formData.sex,
@@ -64,6 +67,26 @@ const ProfileSetup = ({ user, onComplete }) => {
     });
     
     if (result.success) {
+      // Criar trial de 3 dias automaticamente
+      try {
+        const now = new Date();
+        const trialEnd = new Date(now.getTime() + (3 * 24 * 60 * 60 * 1000)); // 3 dias
+        
+        await setDoc(doc(db, 'users', user.uid, 'subscription', 'current'), {
+          status: 'trial',
+          plan: null,
+          createdAt: now,
+          trialEnd: trialEnd,
+          expiresAt: null,
+          updatedAt: now
+        });
+        
+        console.log('✅ Trial de 3 dias criado com sucesso!');
+      } catch (error) {
+        console.error('Erro ao criar trial:', error);
+        // Não bloqueia o fluxo
+      }
+      
       setResults(result.calculated);
       setStep(4); // Vai para tela de resultados
     } else {
