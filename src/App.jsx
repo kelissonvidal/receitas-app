@@ -1,14 +1,20 @@
 import React, { useState, useEffect } from 'react';
-import { LogOut, User as UserIcon, BookOpen, Home as HomeIcon, BarChart2, Menu, X } from 'lucide-react';
+import { LogOut, User as UserIcon, BookOpen, Home as HomeIcon, BarChart2, Menu, X, Crown } from 'lucide-react';
 import FoodDiary from './components/FoodDiary';
 import Dashboard from './components/Dashboard';
 import WeightTracker from './components/WeightTracker';
 import RecipeGenerator from './components/RecipeGenerator';
+import Paywall from './components/Paywall';
+import { useSubscription } from './hooks/useSubscription';
 
 const App = ({ user, userProfile, onLogout, onEditProfile }) => {
   const [currentView, setCurrentView] = useState('home'); // 'home' | 'recipes' | 'diary' | 'dashboard' | 'profile'
   const [menuOpen, setMenuOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+  const [showPaywall, setShowPaywall] = useState(false);
+
+  // Subscription hook
+  const { subscription, loading: subLoading, isPremium, isInTrial, daysLeftInTrial } = useSubscription(user?.uid);
 
   useEffect(() => {
     const handleResize = () => {
@@ -262,6 +268,92 @@ const App = ({ user, userProfile, onLogout, onEditProfile }) => {
           </div>
         )}
       </div>
+
+      {/* TRIAL BANNER */}
+      {isInTrial && daysLeftInTrial > 0 && (
+        <div style={{
+          maxWidth: '1200px',
+          margin: '0 auto 20px',
+          background: 'linear-gradient(135deg, #FFD700 0%, #FFA500 100%)',
+          borderRadius: '12px',
+          padding: '16px 20px',
+          boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          flexWrap: 'wrap',
+          gap: '12px'
+        }}>
+          <div>
+            <div style={{fontSize: '18px', fontWeight: '700', color: '#333', marginBottom: '4px'}}>
+              🎁 Trial Gratuito Ativo
+            </div>
+            <div style={{fontSize: '14px', color: '#666'}}>
+              Você tem {daysLeftInTrial} {daysLeftInTrial === 1 ? 'dia' : 'dias'} restantes de acesso premium!
+            </div>
+          </div>
+          <button
+            onClick={() => setShowPaywall(true)}
+            style={{
+              padding: '12px 24px',
+              background: '#333',
+              color: 'white',
+              border: 'none',
+              borderRadius: '8px',
+              fontSize: '14px',
+              fontWeight: '700',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              whiteSpace: 'nowrap'
+            }}
+          >
+            <Crown size={18} />
+            Assinar Agora
+          </button>
+        </div>
+      )}
+
+      {/* PREMIUM BUTTON (Se não for premium e trial acabou) */}
+      {!isPremium && !isInTrial && (
+        <div style={{
+          maxWidth: '1200px',
+          margin: '0 auto 20px',
+          background: 'linear-gradient(135deg, #2E7D32 0%, #1B5E20 100%)',
+          borderRadius: '12px',
+          padding: '20px',
+          boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+          textAlign: 'center',
+          color: 'white'
+        }}>
+          <div style={{fontSize: '20px', fontWeight: '700', marginBottom: '8px'}}>
+            ⚠️ Seu trial expirou
+          </div>
+          <div style={{fontSize: '14px', marginBottom: '16px', opacity: 0.9}}>
+            Assine agora para continuar usando todas as funcionalidades
+          </div>
+          <button
+            onClick={() => setShowPaywall(true)}
+            style={{
+              padding: '14px 32px',
+              background: 'white',
+              color: '#2E7D32',
+              border: 'none',
+              borderRadius: '8px',
+              fontSize: '16px',
+              fontWeight: '700',
+              cursor: 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '8px'
+            }}
+          >
+            <Crown size={20} />
+            Ver Planos Premium
+          </button>
+        </div>
+      )}
 
       {/* CONTENT */}
       <div style={{
@@ -547,6 +639,16 @@ const App = ({ user, userProfile, onLogout, onEditProfile }) => {
           </div>
         )}
       </div>
+
+      {/* PAYWALL MODAL */}
+      {showPaywall && (
+        <Paywall
+          onClose={() => setShowPaywall(false)}
+          user={user}
+          isInTrial={isInTrial}
+          daysLeftInTrial={daysLeftInTrial}
+        />
+      )}
     </div>
   );
 };
