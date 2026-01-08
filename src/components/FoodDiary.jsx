@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { addMealByText, getTodayDiary, getDiaryByDate, calculateDeficitSurplus, deleteMeal } from '../firebase/diary';
 import { Loader, Plus, Trash2, TrendingUp, TrendingDown, Minus, Camera } from 'lucide-react';
 import PhotoAnalysis from './PhotoAnalysis';
+import { MEAL_TYPES, getMealTypesByCategory, getMealTypeIcon } from '../utils/mealTypes';
 
 const FoodDiary = ({ user, userProfile }) => {
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
@@ -176,10 +177,17 @@ const FoodDiary = ({ user, userProfile }) => {
                 onChange={(e) => setMealData({...mealData, type: e.target.value})}
                 style={styles.select}
               >
-                <option value="breakfast">☕ Café da Manhã</option>
-                <option value="lunch">🍽️ Almoço</option>
-                <option value="snack">🍎 Lanche</option>
-                <option value="dinner">🌙 Jantar</option>
+                {Object.entries(getMealTypesByCategory()).map(([category, types]) => (
+                  <optgroup key={category} label={types[0]?.category === 'main' ? 'Refeições Principais' : 
+                                                     types[0]?.category === 'snack' ? 'Lanches' :
+                                                     types[0]?.category === 'workout' ? 'Treino' : 'Suplementos'}>
+                    {types.map(type => (
+                      <option key={type.id} value={type.id}>
+                        {type.icon} {type.name}
+                      </option>
+                    ))}
+                  </optgroup>
+                ))}
               </select>
             </div>
 
