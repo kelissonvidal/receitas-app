@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { LogOut, User as UserIcon, BookOpen, Home as HomeIcon, BarChart2, Menu, X, Crown } from 'lucide-react';
+import { LogOut, User as UserIcon, BookOpen, Home as HomeIcon, BarChart2, Menu, X, Crown, Calendar } from 'lucide-react';
 import FoodDiary from './components/FoodDiary';
 import Dashboard from './components/Dashboard';
+import MealPlan from './components/MealPlan';
 import WeightTracker from './components/WeightTracker';
+import SupplementsManager from './components/SupplementsManager';
 import RecipeGenerator from './components/RecipeGenerator';
 import Paywall from './components/Paywall';
 import { useSubscription } from './hooks/useSubscription';
@@ -163,6 +165,27 @@ const App = ({ user, userProfile, onLogout, onEditProfile }) => {
             >
               <BarChart2 size={16} />
               Dashboard
+            </button>
+
+            <button
+              onClick={() => setCurrentView('mealplan')}
+              style={{
+                padding: '10px 16px',
+                background: currentView === 'mealplan' ? 'linear-gradient(135deg, #2E7D32 0%, #1B5E20 100%)' : '#f5f5f5',
+                color: currentView === 'mealplan' ? 'white' : '#333',
+                border: 'none',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                fontSize: '13px',
+                fontWeight: '600',
+                whiteSpace: 'nowrap'
+              }}
+            >
+              <Calendar size={16} />
+              Plano Semanal
             </button>
 
             <button
@@ -458,11 +481,15 @@ const App = ({ user, userProfile, onLogout, onEditProfile }) => {
             )}
 
             {userProfile && (
-              <WeightTracker 
-                user={user} 
-                userProfile={userProfile}
-                onUpdate={() => window.location.reload()}
-              />
+              <>
+                <WeightTracker 
+                  user={user} 
+                  userProfile={userProfile}
+                  onUpdate={() => window.location.reload()}
+                />
+                
+                <SupplementsManager user={user} />
+              </>
             )}
           </div>
         )}
@@ -477,6 +504,10 @@ const App = ({ user, userProfile, onLogout, onEditProfile }) => {
 
         {currentView === 'dashboard' && (
           <Dashboard user={user} userProfile={userProfile} />
+        )}
+
+        {currentView === 'mealplan' && (
+          <MealPlan user={user} userProfile={userProfile} />
         )}
 
         {currentView === 'home' && (
