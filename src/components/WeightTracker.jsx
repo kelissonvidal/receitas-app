@@ -57,8 +57,12 @@ const WeightTracker = ({ user, userProfile, onUpdate }) => {
 
   const formatDate = (timestamp) => {
     if (!timestamp) return '';
-    const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
-    return date.toLocaleDateString('pt-BR');
+    try {
+      const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+      return date.toLocaleDateString('pt-BR');
+    } catch (error) {
+      return '';
+    }
   };
 
   const calculateDifference = () => {
@@ -81,20 +85,35 @@ const WeightTracker = ({ user, userProfile, onUpdate }) => {
     if (filter === '7') {
       const weekAgo = new Date(now - 7 * 24 * 60 * 60 * 1000);
       filtered = history.filter(h => {
-        const date = h.timestamp.toDate ? h.timestamp.toDate() : new Date(h.timestamp);
-        return date >= weekAgo;
+        if (!h.timestamp) return false;
+        try {
+          const date = h.timestamp.toDate ? h.timestamp.toDate() : new Date(h.timestamp);
+          return date >= weekAgo;
+        } catch {
+          return false;
+        }
       });
     } else if (filter === '30') {
       const monthAgo = new Date(now - 30 * 24 * 60 * 60 * 1000);
       filtered = history.filter(h => {
-        const date = h.timestamp.toDate ? h.timestamp.toDate() : new Date(h.timestamp);
-        return date >= monthAgo;
+        if (!h.timestamp) return false;
+        try {
+          const date = h.timestamp.toDate ? h.timestamp.toDate() : new Date(h.timestamp);
+          return date >= monthAgo;
+        } catch {
+          return false;
+        }
       });
     } else if (filter === '90') {
       const threeMonthsAgo = new Date(now - 90 * 24 * 60 * 60 * 1000);
       filtered = history.filter(h => {
-        const date = h.timestamp.toDate ? h.timestamp.toDate() : new Date(h.timestamp);
-        return date >= threeMonthsAgo;
+        if (!h.timestamp) return false;
+        try {
+          const date = h.timestamp.toDate ? h.timestamp.toDate() : new Date(h.timestamp);
+          return date >= threeMonthsAgo;
+        } catch {
+          return false;
+        }
       });
     }
     
@@ -103,11 +122,17 @@ const WeightTracker = ({ user, userProfile, onUpdate }) => {
 
   const getChartData = () => {
     const filtered = getFilteredHistory();
-    return filtered.map(h => ({
-      date: formatDate(h.timestamp),
-      weight: h.weight,
-      timestamp: h.timestamp.toDate ? h.timestamp.toDate() : new Date(h.timestamp)
-    }));
+    return filtered.map(h => {
+      try {
+        return {
+          date: formatDate(h.timestamp),
+          weight: h.weight,
+          timestamp: h.timestamp?.toDate ? h.timestamp.toDate() : new Date(h.timestamp)
+        };
+      } catch {
+        return null;
+      }
+    }).filter(Boolean); // Remove nulls
   };
 
   const getWeeklyChange = () => {
@@ -117,8 +142,13 @@ const WeightTracker = ({ user, userProfile, onUpdate }) => {
     const weekAgo = new Date(now - 7 * 24 * 60 * 60 * 1000);
     
     const recentWeights = history.filter(h => {
-      const date = h.timestamp.toDate ? h.timestamp.toDate() : new Date(h.timestamp);
-      return date >= weekAgo;
+      if (!h.timestamp) return false;
+      try {
+        const date = h.timestamp.toDate ? h.timestamp.toDate() : new Date(h.timestamp);
+        return date >= weekAgo;
+      } catch {
+        return false;
+      }
     });
     
     if (recentWeights.length < 2) return null;
@@ -140,8 +170,13 @@ const WeightTracker = ({ user, userProfile, onUpdate }) => {
     const monthAgo = new Date(now - 30 * 24 * 60 * 60 * 1000);
     
     const recentWeights = history.filter(h => {
-      const date = h.timestamp.toDate ? h.timestamp.toDate() : new Date(h.timestamp);
-      return date >= monthAgo;
+      if (!h.timestamp) return false;
+      try {
+        const date = h.timestamp.toDate ? h.timestamp.toDate() : new Date(h.timestamp);
+        return date >= monthAgo;
+      } catch {
+        return false;
+      }
     });
     
     if (recentWeights.length < 2) return null;
