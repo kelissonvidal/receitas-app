@@ -79,20 +79,32 @@ const WeightTracker = ({ user, userProfile, onUpdate }) => {
   const getFilteredHistory = () => {
     if (!history.length) return [];
     
+    console.log('🔍 getFilteredHistory - Filter:', filter);
+    console.log('🔍 Total history:', history.length);
+    
     const now = new Date();
     let filtered = [...history];
     
     if (filter === '7') {
       const weekAgo = new Date(now - 7 * 24 * 60 * 60 * 1000);
+      console.log('📅 Week ago:', weekAgo);
+      
       filtered = history.filter(h => {
-        if (!h.timestamp) return false;
+        if (!h.timestamp) {
+          console.log('⚠️ Item sem timestamp:', h);
+          return false;
+        }
         try {
           const date = h.timestamp.toDate ? h.timestamp.toDate() : new Date(h.timestamp);
+          console.log('📊 Comparando:', date, '>=', weekAgo, '→', date >= weekAgo);
           return date >= weekAgo;
-        } catch {
+        } catch (error) {
+          console.log('❌ Erro ao processar:', h, error);
           return false;
         }
       });
+      
+      console.log('✅ Filtered (7d):', filtered.length);
     } else if (filter === '30') {
       const monthAgo = new Date(now - 30 * 24 * 60 * 60 * 1000);
       filtered = history.filter(h => {
@@ -104,6 +116,7 @@ const WeightTracker = ({ user, userProfile, onUpdate }) => {
           return false;
         }
       });
+      console.log('✅ Filtered (30d):', filtered.length);
     } else if (filter === '90') {
       const threeMonthsAgo = new Date(now - 90 * 24 * 60 * 60 * 1000);
       filtered = history.filter(h => {
@@ -115,8 +128,10 @@ const WeightTracker = ({ user, userProfile, onUpdate }) => {
           return false;
         }
       });
+      console.log('✅ Filtered (90d):', filtered.length);
     }
     
+    console.log('🎯 Final filtered:', filtered.length);
     return filtered.reverse(); // Mais antigo primeiro para o gráfico
   };
 

@@ -253,9 +253,13 @@ export const getWeightHistory = async (userId, limit = 30) => {
     
     const history = [];
     snapshot.forEach(doc => {
+      const data = doc.data();
       history.push({
         id: doc.id,
-        ...doc.data()
+        weight: data.weight,
+        date: data.date,
+        timestamp: data.date, // ← ADICIONANDO timestamp que é o mesmo que date
+        updatedAt: data.updatedAt
       });
     });
     
