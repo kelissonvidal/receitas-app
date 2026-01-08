@@ -28,6 +28,14 @@ service cloud.firestore {
       match /subscription/{docId} {
         allow read, write: if isOwner(userId);
       }
+      
+      match /supplements/{supplementId} {
+        allow read, write: if isOwner(userId);
+      }
+      
+      match /preferences/{docId} {
+        allow read, write: if isOwner(userId);
+      }
     }
   }
 }
