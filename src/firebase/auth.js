@@ -8,7 +8,11 @@ import {
   signOut,
   onAuthStateChanged,
   GoogleAuthProvider,
-  signInWithPopup
+  signInWithPopup,
+  sendPasswordResetEmail,
+  fetchSignInMethodsForEmail,
+  linkWithCredential,
+  EmailAuthProvider
 } from 'firebase/auth';
 import { doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore';
 import { auth, db } from './config';
@@ -63,7 +67,7 @@ export const loginUser = async (email, password) => {
 };
 
 // ===================================
-// GOOGLE LOGIN
+// GOOGLE LOGIN (com vinculação automática)
 // ===================================
 export const loginWithGoogle = async () => {
   try {
@@ -75,6 +79,30 @@ export const loginWithGoogle = async () => {
     const userDoc = await getDoc(doc(db, 'users', user.uid));
     
     if (!userDoc.exists()) {
+      // NOVO: Verificar se existe conta antiga com mesmo email
+      const { detectExistingAccount, mergeUserData } = await import('./accountLinking');
+      const { existingUserId } = await detectExistingAccount(user.email);
+      
+      if (existingUserId) {
+        // Perguntar se quer migrar dados
+        const shouldMerge = window.confirm(
+          '🔄 Detectamos que você já tem uma conta!\n\n' +
+          'Deseja migrar seus registros anteriores?\n\n' +
+          '✅ Sim - Seus dados serão preservados\n' +
+          '❌ Não - Começar do zero'
+        );
+        
+        if (shouldMerge) {
+          console.log('🔄 Migrando dados...');
+          const mergeResult = await mergeUserData(existingUserId, user.uid);
+          
+          if (mergeResult.success) {
+            alert('✅ Dados migrados! Faça logout e login novamente para ver tudo.');
+            return { success: true, user, merged: true };
+          }
+        }
+      }
+      
       // Create user document for new Google user
       const trialEnds = new Date();
       trialEnds.setDate(trialEnds.getDate() + 3);
@@ -129,3 +157,60 @@ export const onAuthChange = (callback) => {
 export const getCurrentUser = () => {
   return auth.currentUser;
 };
+
+// ===================================
+// RESET PASSWORD
+// ===================================
+export const resetPassword = async (email) => {
+  try {
+    await sendPasswordResetEmail(auth, email, {
+      url: window.location.origin,
+      handleCodeInApp: false
+    });
+    return { success: true };
+  } catch (error) {
+    console.error('Reset password error:', error);
+    return { success: false, error: error.message };
+  }
+};
+
+// ===================================
+// CHECK IF EMAIL EXISTS
+// ===================================
+export const checkEmailExists = async (email) => {
+  try {
+    const signInMethods = await fetchSignInMethodsForEmail(auth, email);
+    return { 
+      success: true, 
+      exists: signInMethods.length > 0,
+      methods: signInMethods 
+    };
+  } catch (error) {
+    console.error('Check email error:', error);
+    return { success: false, error: error.message };
+  }
+};
+
+// ===================================
+// LINK ACCOUNTS (Email/Password + Google)
+// ===================================
+export const linkEmailPasswordToGoogleAccount = async (email, password) => {
+  try {
+    const user = auth.currentUser;
+    if (!user) {
+      return { success: false, error: 'Nenhum usuário logado' };
+    }
+
+    // Criar credential
+    const credential = EmailAuthProvider.credential(email, password);
+    
+    // Vincular conta
+    await linkWithCredential(user, credential);
+    
+    return { success: true };
+  } catch (error) {
+    console.error('Link accounts error:', error);
+    return { success: false, error: error.message };
+  }
+};
+
