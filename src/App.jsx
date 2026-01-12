@@ -5,6 +5,7 @@ import Dashboard from './components/Dashboard';
 import MealPlan from './components/MealPlan';
 import WeightTracker from './components/WeightTracker';
 import SupplementsManager from './components/SupplementsManager';
+import ProfileEditor from './components/ProfileEditor';
 import RecipeGenerator from './components/RecipeGenerator';
 import Paywall from './components/Paywall';
 import { useSubscription } from './hooks/useSubscription';
@@ -482,6 +483,12 @@ const App = ({ user, userProfile, onLogout, onEditProfile }) => {
 
             {userProfile && (
               <>
+                <ProfileEditor 
+                  user={user} 
+                  userProfile={userProfile}
+                  onUpdate={() => window.location.reload()}
+                />
+                
                 <WeightTracker 
                   user={user} 
                   userProfile={userProfile}

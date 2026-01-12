@@ -20,16 +20,16 @@ export const calculateIMC = (weight, height) => {
 };
 
 /**
- * Calcula TMB (Taxa Metabólica Basal) - Harris-Benedict
- * Homens: TMB = 88,362 + (13,397 × peso) + (4,799 × altura) - (5,677 × idade)
- * Mulheres: TMB = 447,593 + (9,247 × peso) + (3,098 × altura) - (4,330 × idade)
+ * Calcula TMB (Taxa Metabólica Basal) - Mifflin-St Jeor (mais precisa)
+ * Homens: TMB = (10 × peso) + (6,25 × altura) - (5 × idade) + 5
+ * Mulheres: TMB = (10 × peso) + (6,25 × altura) - (5 × idade) - 161
  */
 export const calculateTMB = (weight, height, age, sex) => {
   let tmb;
   if (sex === 'M') {
-    tmb = 88.362 + (13.397 * weight) + (4.799 * height) - (5.677 * age);
+    tmb = (10 * weight) + (6.25 * height) - (5 * age) + 5;
   } else {
-    tmb = 447.593 + (9.247 * weight) + (3.098 * height) - (4.330 * age);
+    tmb = (10 * weight) + (6.25 * height) - (5 * age) - 161;
   }
   return Math.round(tmb);
 };
