@@ -133,21 +133,32 @@ export const saveUserProfile = async (userId, profileData) => {
       updatedAt: new Date()
     };
     
+    // Construir objeto de perfil sem campos undefined
+    const profileToSave = {
+      age,
+      sex,
+      weight,
+      height,
+      activityLevel,
+      goal,
+      health: health || {},
+      restrictions: restrictions || [],
+      calculated
+    };
+    
+    // Adicionar campos opcionais apenas se não forem undefined
+    if (targetWeight !== undefined && targetWeight !== null && targetWeight !== '') {
+      profileToSave.targetWeight = targetWeight;
+    }
+    
+    if (targetDate !== undefined && targetDate !== null && targetDate !== '') {
+      profileToSave.targetDate = targetDate;
+    }
+    
     // Salvar perfil completo
     await updateDoc(doc(db, 'users', userId), {
-      profile: {
-        age,
-        sex,
-        weight,
-        height,
-        activityLevel,
-        goal,
-        targetWeight,
-        targetDate,
-        health: health || {},
-        restrictions: restrictions || [],
-        calculated
-      }
+      profile: profileToSave,
+      correctedAt: new Date() // Marcar como corrigido
     });
     
     return { success: true, calculated };
@@ -164,7 +175,63 @@ export const getUserProfile = async (userId) => {
   try {
     const userDoc = await getDoc(doc(db, 'users', userId));
     if (userDoc.exists()) {
-      return { success: true, profile: userDoc.data().profile };
+      const userData = userDoc.data();
+      const profile = userData.profile;
+      
+      // VERIFICAR SE TMB PRECISA SER RECALCULADO
+      // Se perfil tem dados mas não tem 'correctedAt', significa que foi criado antes da correção
+      if (profile && profile.weight && profile.height && profile.age && profile.sex) {
+        const needsCorrection = !userData.correctedAt;
+        
+        if (needsCorrection) {
+          console.log('🔄 TMB desatualizado detectado. Recalculando...');
+          
+          // Recalcular com fórmula correta
+          const correctTMB = calculateTMB(
+            profile.weight,
+            profile.height,
+            profile.age,
+            profile.sex
+          );
+          
+          const correctGET = calculateGET(correctTMB, profile.activityLevel || 'moderado');
+          const correctCalories = calculateCalories(correctGET, profile.goal || 'manter');
+          const correctMacros = calculateMacros(
+            correctCalories,
+            profile.weight,
+            profile.goal || 'manter'
+          );
+          
+          // Atualizar silenciosamente no Firebase
+          await updateDoc(doc(db, 'users', userId), {
+            'calculated.tmb': correctTMB,
+            'calculated.calories': correctCalories,
+            'calculated.protein': correctMacros.protein,
+            'calculated.carbs': correctMacros.carbs,
+            'calculated.fat': correctMacros.fat,
+            'correctedAt': new Date()
+          });
+          
+          console.log('✅ TMB corrigido automaticamente!');
+          
+          // Retornar dados atualizados
+          return {
+            success: true,
+            profile: {
+              ...profile,
+              calculated: {
+                tmb: correctTMB,
+                calories: correctCalories,
+                protein: correctMacros.protein,
+                carbs: correctMacros.carbs,
+                fat: correctMacros.fat
+              }
+            }
+          };
+        }
+      }
+      
+      return { success: true, profile };
     }
     return { success: false, error: 'Profile not found' };
   } catch (error) {
