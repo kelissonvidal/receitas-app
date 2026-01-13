@@ -18,17 +18,17 @@ const ProfileEditor = ({ user, userProfile, onUpdate }) => {
   });
 
   useEffect(() => {
-    if (userProfile?.profile) {
+    if (userProfile) {
       setFormData({
-        age: userProfile.profile.age || '',
-        sex: userProfile.profile.sex || '',
-        weight: userProfile.profile.weight || '',
-        height: userProfile.profile.height || '',
-        activityLevel: userProfile.profile.activityLevel || '',
-        goal: userProfile.profile.goal || '',
-        targetWeight: userProfile.profile.targetWeight || '',
-        health: userProfile.profile.health || {},
-        restrictions: userProfile.profile.restrictions || []
+        age: userProfile.age || '',
+        sex: userProfile.sex || '',
+        weight: userProfile.weight || '',
+        height: userProfile.height || '',
+        activityLevel: userProfile.activityLevel || '',
+        goal: userProfile.goal || '',
+        targetWeight: userProfile.targetWeight || '',
+        health: userProfile.health || {},
+        restrictions: userProfile.restrictions || []
       });
     }
   }, [userProfile]);
@@ -63,22 +63,36 @@ const ProfileEditor = ({ user, userProfile, onUpdate }) => {
         <div style={styles.dataGrid}>
           <div style={styles.dataItem}>
             <span style={styles.dataLabel}>Idade:</span>
-            <span style={styles.dataValue}>{formData.age} anos</span>
+            <span style={styles.dataValue}>{formData.age || '—'} anos</span>
           </div>
           <div style={styles.dataItem}>
             <span style={styles.dataLabel}>Sexo:</span>
-            <span style={styles.dataValue}>{formData.sex === 'M' ? 'Masculino' : 'Feminino'}</span>
+            <span style={styles.dataValue}>{formData.sex === 'M' ? '👨 Masculino' : formData.sex === 'F' ? '👩 Feminino' : '—'}</span>
           </div>
           <div style={styles.dataItem}>
             <span style={styles.dataLabel}>Altura:</span>
-            <span style={styles.dataValue}>{formData.height} cm</span>
+            <span style={styles.dataValue}>{formData.height || '—'} cm</span>
           </div>
           <div style={styles.dataItem}>
             <span style={styles.dataLabel}>Peso Atual:</span>
-            <span style={styles.dataValue}>{formData.weight} kg</span>
+            <span style={styles.dataValue}>{formData.weight || '—'} kg</span>
           </div>
         </div>
       </div>
+
+      {/* NOVA SEÇÃO: TAXA METABÓLICA */}
+      {userProfile?.calculated?.tmb && (
+        <div style={styles.section}>
+          <h4 style={styles.sectionTitle}>🔥 Taxa Metabólica</h4>
+          <div style={styles.tmbCard}>
+            <div style={styles.tmbMain}>
+              <span style={styles.tmbLabel}>TMB (Taxa Metabólica Basal)</span>
+              <span style={styles.tmbValue}>{userProfile.calculated.tmb} kcal/dia</span>
+              <span style={styles.tmbHint}>Calorias que seu corpo queima em repouso</span>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div style={styles.section}>
         <h4 style={styles.sectionTitle}><Activity size={18} /> Atividade e Objetivo</h4>
@@ -86,11 +100,12 @@ const ProfileEditor = ({ user, userProfile, onUpdate }) => {
           <div style={styles.dataItem}>
             <span style={styles.dataLabel}>Nível de Atividade:</span>
             <span style={styles.dataValue}>
-              {formData.activityLevel === 'sedentario' && 'Sedentário'}
-              {formData.activityLevel === 'leve' && 'Leve (1-3x/semana)'}
-              {formData.activityLevel === 'moderado' && 'Moderado (3-5x/semana)'}
-              {formData.activityLevel === 'intenso' && 'Intenso (6-7x/semana)'}
-              {formData.activityLevel === 'muito_intenso' && 'Muito Intenso (Atleta)'}
+              {formData.activityLevel === 'sedentario' && '🪑 Sedentário'}
+              {formData.activityLevel === 'leve' && '🚶 Leve (1-3x/semana)'}
+              {formData.activityLevel === 'moderado' && '🏃 Moderado (3-5x/semana)'}
+              {formData.activityLevel === 'intenso' && '💪 Intenso (6-7x/semana)'}
+              {formData.activityLevel === 'muito_intenso' && '🏋️ Muito Intenso (Atleta)'}
+              {!formData.activityLevel && '—'}
             </span>
           </div>
           <div style={styles.dataItem}>
@@ -99,6 +114,7 @@ const ProfileEditor = ({ user, userProfile, onUpdate }) => {
               {formData.goal === 'perder' && '📉 Perder Peso'}
               {formData.goal === 'manter' && '⚖️ Manter Peso'}
               {formData.goal === 'ganhar' && '📈 Ganhar Peso'}
+              {!formData.goal && '—'}
             </span>
           </div>
           {formData.targetWeight && (
@@ -110,29 +126,29 @@ const ProfileEditor = ({ user, userProfile, onUpdate }) => {
         </div>
       </div>
 
-      {userProfile?.profile?.calculated && (
+      {userProfile?.calculated && (
         <div style={styles.section}>
           <h4 style={styles.sectionTitle}><Target size={18} /> Metas Calculadas</h4>
           <div style={styles.calculatedGrid}>
             <div style={styles.calculatedItem}>
               <span style={styles.calculatedLabel}>TMB:</span>
-              <span style={styles.calculatedValue}>{userProfile.profile.calculated.tmb} kcal/dia</span>
+              <span style={styles.calculatedValue}>{userProfile.calculated.tmb} kcal/dia</span>
               <span style={styles.calculatedHint}>Metabolismo basal</span>
             </div>
             <div style={styles.calculatedItem}>
               <span style={styles.calculatedLabel}>GET:</span>
-              <span style={styles.calculatedValue}>{userProfile.profile.calculated.get} kcal/dia</span>
+              <span style={styles.calculatedValue}>{userProfile.calculated.get} kcal/dia</span>
               <span style={styles.calculatedHint}>Gasto total diário</span>
             </div>
             <div style={styles.calculatedItem}>
               <span style={styles.calculatedLabel}>Meta Diária:</span>
-              <span style={styles.calculatedValue}>{userProfile.profile.calculated.targetCalories} kcal/dia</span>
+              <span style={styles.calculatedValue}>{userProfile.calculated.targetCalories} kcal/dia</span>
               <span style={styles.calculatedHint}>Para seu objetivo</span>
             </div>
             <div style={styles.calculatedItem}>
               <span style={styles.calculatedLabel}>IMC:</span>
-              <span style={styles.calculatedValue}>{userProfile.profile.calculated.imc}</span>
-              <span style={styles.calculatedHint}>{userProfile.profile.calculated.imcClassification}</span>
+              <span style={styles.calculatedValue}>{userProfile.calculated.imc}</span>
+              <span style={styles.calculatedHint}>{userProfile.calculated.imcClassification}</span>
             </div>
           </div>
 
@@ -454,6 +470,33 @@ const styles = {
   buttonDisabled: {
     opacity: 0.6,
     cursor: 'not-allowed'
+  },
+  tmbCard: {
+    background: 'linear-gradient(135deg, #FFF8DC 0%, #FAEBD7 100%)',
+    border: '2px solid #DAA520',
+    borderRadius: '12px',
+    padding: '20px'
+  },
+  tmbMain: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    gap: '8px'
+  },
+  tmbLabel: {
+    fontSize: '14px',
+    fontWeight: '600',
+    color: '#8B4513'
+  },
+  tmbValue: {
+    fontSize: '32px',
+    fontWeight: '800',
+    color: '#8B4513'
+  },
+  tmbHint: {
+    fontSize: '13px',
+    color: '#666',
+    textAlign: 'center'
   }
 };
 
