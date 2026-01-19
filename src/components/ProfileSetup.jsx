@@ -9,6 +9,7 @@ const ProfileSetup = ({ user, onComplete }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [results, setResults] = useState(null);
+  const [heightWarning, setHeightWarning] = useState('');
 
   const [formData, setFormData] = useState({
     // Dados básicos
@@ -36,6 +37,72 @@ const ProfileSetup = ({ user, onComplete }) => {
     restrictions: []
   });
 
+  // ===================================
+  // NORMALIZAR ALTURA (converter metros para cm)
+  // ===================================
+  const normalizeHeight = (value) => {
+    if (!value) return '';
+    
+    // Remove espaços
+    let cleaned = value.toString().trim();
+    
+    // Substitui vírgula por ponto
+    cleaned = cleaned.replace(',', '.');
+    
+    // Converte para número
+    let height = parseFloat(cleaned);
+    
+    if (isNaN(height)) return '';
+    
+    // Se valor é muito pequeno (provavelmente em metros)
+    // Valores típicos em metros: 1.50 a 2.20
+    if (height >= 0.5 && height <= 2.5) {
+      height = Math.round(height * 100); // Converte para cm
+      setHeightWarning(`✅ Convertido para ${height} cm`);
+    } else if (height < 50) {
+      // Valor muito baixo, pode ser erro
+      setHeightWarning('⚠️ Altura parece muito baixa. Use centímetros (ex: 175)');
+    } else if (height > 250) {
+      // Valor muito alto
+      setHeightWarning('⚠️ Altura parece muito alta. Use centímetros (ex: 175)');
+    } else {
+      setHeightWarning('');
+    }
+    
+    return height;
+  };
+
+  // ===================================
+  // HANDLER DE MUDANÇA DE ALTURA
+  // ===================================
+  const handleHeightChange = (e) => {
+    // Só permite números, vírgula e ponto
+    const rawValue = e.target.value.replace(/[^0-9.,]/g, '');
+    setFormData({...formData, height: rawValue});
+    
+    // Validar em tempo real
+    if (rawValue) {
+      const normalized = normalizeHeight(rawValue);
+      // Não atualizar o formData aqui, só mostrar warning
+    }
+  };
+
+  // ===================================
+  // VALIDAR ANTES DE AVANÇAR
+  // ===================================
+  const validateAndProceed = () => {
+    const normalizedHeight = normalizeHeight(formData.height);
+    
+    if (normalizedHeight && normalizedHeight >= 50 && normalizedHeight <= 250) {
+      // Altura válida, atualizar e avançar
+      setFormData({...formData, height: normalizedHeight.toString()});
+      setHeightWarning('');
+      setStep(2);
+    } else {
+      setError('Por favor, informe uma altura válida em centímetros (ex: 175)');
+    }
+  };
+
   const handleSubmit = async () => {
     setError('');
     
@@ -49,6 +116,13 @@ const ProfileSetup = ({ user, onComplete }) => {
       setError('Preencha nível de atividade e objetivo');
       return;
     }
+
+    // Normalizar altura antes de salvar
+    const normalizedHeight = normalizeHeight(formData.height);
+    if (!normalizedHeight || normalizedHeight < 50 || normalizedHeight > 250) {
+      setError('Altura inválida. Use centímetros (ex: 175)');
+      return;
+    }
     
     setLoading(true);
     
@@ -57,7 +131,7 @@ const ProfileSetup = ({ user, onComplete }) => {
       age: parseInt(formData.age),
       sex: formData.sex,
       weight: parseFloat(formData.weight),
-      height: parseFloat(formData.height),
+      height: normalizedHeight, // Usar altura normalizada
       activityLevel: formData.activityLevel,
       goal: formData.goal,
       targetWeight: formData.targetWeight ? parseFloat(formData.targetWeight) : null,
@@ -166,19 +240,43 @@ const ProfileSetup = ({ user, onComplete }) => {
         </div>
 
         <div style={styles.inputGroup}>
-          <label style={styles.label}>Altura (cm) *</label>
+          <label style={styles.label}>Altura em centímetros *</label>
           <input
-            type="number"
-            placeholder="Ex: 175"
+            type="text"
+            inputMode="decimal"
+            placeholder="Ex: 175 (digite 175, não 1,75)"
             value={formData.height}
-            onChange={(e) => setFormData({...formData, height: e.target.value})}
+            onChange={handleHeightChange}
+            onBlur={() => {
+              // Normalizar ao sair do campo
+              if (formData.height) {
+                const normalized = normalizeHeight(formData.height);
+                if (normalized && normalized >= 50 && normalized <= 250) {
+                  setFormData({...formData, height: normalized.toString()});
+                }
+              }
+            }}
             style={styles.input}
           />
+          {heightWarning && (
+            <span style={{
+              display: 'block',
+              fontSize: '13px',
+              marginTop: '6px',
+              color: heightWarning.includes('✅') ? '#2E7D32' : '#f57c00',
+              fontWeight: '500'
+            }}>
+              {heightWarning}
+            </span>
+          )}
+          <span style={{fontSize: '12px', color: '#888', marginTop: '4px', display: 'block'}}>
+            💡 Use centímetros. Ex: 175 para 1,75m
+          </span>
         </div>
       </div>
 
       <button
-        onClick={() => setStep(2)}
+        onClick={validateAndProceed}
         disabled={!formData.age || !formData.sex || !formData.weight || !formData.height}
         style={{...styles.button, ...((!formData.age || !formData.sex || !formData.weight || !formData.height) && styles.buttonDisabled)}}
       >

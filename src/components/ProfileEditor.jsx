@@ -5,6 +5,7 @@ import { Loader, Edit2, Save, X, User, Activity, Target, AlertCircle } from 'luc
 const ProfileEditor = ({ user, userProfile, onUpdate }) => {
   const [editing, setEditing] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [heightWarning, setHeightWarning] = useState('');
   const [formData, setFormData] = useState({
     age: '',
     sex: '',
@@ -16,6 +17,26 @@ const ProfileEditor = ({ user, userProfile, onUpdate }) => {
     health: {},
     restrictions: []
   });
+
+  // Normalizar altura (converter metros para cm)
+  const normalizeHeight = (value) => {
+    if (!value) return '';
+    let cleaned = value.toString().trim().replace(',', '.');
+    let height = parseFloat(cleaned);
+    if (isNaN(height)) return '';
+    
+    if (height >= 0.5 && height <= 2.5) {
+      height = Math.round(height * 100);
+      setHeightWarning(`✅ Convertido para ${height} cm`);
+    } else if (height < 50) {
+      setHeightWarning('⚠️ Altura parece muito baixa');
+    } else if (height > 250) {
+      setHeightWarning('⚠️ Altura parece muito alta');
+    } else {
+      setHeightWarning('');
+    }
+    return height;
+  };
 
   useEffect(() => {
     if (userProfile) {
@@ -36,10 +57,24 @@ const ProfileEditor = ({ user, userProfile, onUpdate }) => {
   const handleSave = async () => {
     setLoading(true);
     
-    const result = await saveUserProfile(user.uid, formData);
+    // Normalizar altura antes de salvar
+    const normalizedHeight = normalizeHeight(formData.height);
+    if (!normalizedHeight || normalizedHeight < 50 || normalizedHeight > 250) {
+      alert('❌ Altura inválida. Use centímetros (ex: 175)');
+      setLoading(false);
+      return;
+    }
+    
+    const dataToSave = {
+      ...formData,
+      height: normalizedHeight
+    };
+    
+    const result = await saveUserProfile(user.uid, dataToSave);
     
     if (result.success) {
       setEditing(false);
+      setHeightWarning('');
       if (onUpdate) onUpdate();
       alert('✅ Perfil atualizado com sucesso!');
     } else {
@@ -206,13 +241,38 @@ const ProfileEditor = ({ user, userProfile, onUpdate }) => {
             </div>
 
             <div style={styles.inputGroup}>
-              <label style={styles.label}>Altura (cm)</label>
+              <label style={styles.label}>Altura em cm (ex: 175)</label>
               <input
-                type="number"
+                type="text"
+                inputMode="decimal"
+                placeholder="Ex: 175"
                 value={formData.height}
-                onChange={(e) => setFormData({...formData, height: e.target.value})}
+                onChange={(e) => {
+                  // Só permite números, vírgula e ponto
+                  const value = e.target.value.replace(/[^0-9.,]/g, '');
+                  setFormData({...formData, height: value});
+                  if (value) normalizeHeight(value);
+                }}
+                onBlur={() => {
+                  if (formData.height) {
+                    const normalized = normalizeHeight(formData.height);
+                    if (normalized >= 50 && normalized <= 250) {
+                      setFormData({...formData, height: normalized.toString()});
+                    }
+                  }
+                }}
                 style={styles.input}
               />
+              {heightWarning && (
+                <span style={{
+                  display: 'block',
+                  fontSize: '12px',
+                  marginTop: '4px',
+                  color: heightWarning.includes('✅') ? '#2E7D32' : '#f57c00'
+                }}>
+                  {heightWarning}
+                </span>
+              )}
             </div>
 
             <div style={styles.inputGroup}>
