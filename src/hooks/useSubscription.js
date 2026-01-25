@@ -2,14 +2,30 @@ import { useState, useEffect } from 'react';
 import { doc, getDoc, onSnapshot } from 'firebase/firestore';
 import { db } from '../firebase/config';
 
+// =============================================
+// 🔓 ACESSO LIBERADO TEMPORARIAMENTE
+// Para reativar a verificação de trial/assinatura,
+// mude LIBERAR_ACESSO para false
+// =============================================
+const LIBERAR_ACESSO = true;
+
 export const useSubscription = (userId) => {
   const [subscription, setSubscription] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [isPremium, setIsPremium] = useState(false);
+  const [isPremium, setIsPremium] = useState(LIBERAR_ACESSO);
   const [isInTrial, setIsInTrial] = useState(false);
   const [daysLeftInTrial, setDaysLeftInTrial] = useState(0);
 
   useEffect(() => {
+    // 🔓 Se acesso liberado, não verificar nada
+    if (LIBERAR_ACESSO) {
+      console.log('🔓 ACESSO LIBERADO - Todos os usuários têm acesso premium');
+      setIsPremium(true);
+      setIsInTrial(false);
+      setLoading(false);
+      return;
+    }
+
     if (!userId) {
       setLoading(false);
       return;
