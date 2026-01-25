@@ -4,8 +4,21 @@ import { Loader, Plus, Trash2, TrendingUp, TrendingDown, Minus, Camera } from 'l
 import PhotoAnalysis from './PhotoAnalysis';
 import { MEAL_TYPES, getMealTypesByCategory, getMealTypeIcon } from '../utils/mealTypes';
 
+// Função para obter data local (Brasília)
+const getLocalDateString = () => {
+  const now = new Date();
+  const options = { 
+    timeZone: 'America/Sao_Paulo', 
+    year: 'numeric', 
+    month: '2-digit', 
+    day: '2-digit' 
+  };
+  const parts = now.toLocaleDateString('pt-BR', options).split('/');
+  return `${parts[2]}-${parts[1]}-${parts[0]}`;
+};
+
 const FoodDiary = ({ user, userProfile }) => {
-  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
+  const [selectedDate, setSelectedDate] = useState(getLocalDateString());
   const [diary, setDiary] = useState(null);
   const [deficitData, setDeficitData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -105,8 +118,7 @@ const FoodDiary = ({ user, userProfile }) => {
   const handleDeleteMeal = async (mealId) => {
     if (!confirm('Deletar esta refeição?')) return;
     
-    const today = new Date().toISOString().split('T')[0];
-    const result = await deleteMeal(user.uid, today, mealId);
+    const result = await deleteMeal(user.uid, selectedDate, mealId);
     
     if (result.success) {
       await loadDiary();
@@ -150,7 +162,7 @@ const FoodDiary = ({ user, userProfile }) => {
             type="date"
             value={selectedDate}
             onChange={(e) => setSelectedDate(e.target.value)}
-            max={new Date().toISOString().split('T')[0]}
+            max={getLocalDateString()}
             style={styles.dateInput}
           />
         </div>

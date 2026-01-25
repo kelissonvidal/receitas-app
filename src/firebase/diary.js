@@ -6,6 +6,23 @@ import { doc, setDoc, getDoc, updateDoc, collection, query, where, orderBy, getD
 import { db } from './config';
 
 // ===================================
+// FUNÇÃO PARA OBTER DATA LOCAL (BRASÍLIA)
+// ===================================
+const getLocalDateString = () => {
+  const now = new Date();
+  // Usar timezone de Brasília (America/Sao_Paulo)
+  const options = { 
+    timeZone: 'America/Sao_Paulo', 
+    year: 'numeric', 
+    month: '2-digit', 
+    day: '2-digit' 
+  };
+  const parts = now.toLocaleDateString('pt-BR', options).split('/');
+  // Retorna no formato YYYY-MM-DD (ex: 2026-01-24)
+  return `${parts[2]}-${parts[1]}-${parts[0]}`;
+};
+
+// ===================================
 // REGISTRAR REFEIÇÃO POR TEXTO
 // ===================================
 export const addMealByText = async (userId, mealData) => {
@@ -99,7 +116,7 @@ Seja preciso nas estimativas. Use valores médios de porções comuns.`;
     }
     
     // Criar entrada no diário
-    const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+    const today = getLocalDateString(); // Data no fuso horário de Brasília
     const mealId = `meal_${Date.now()}`;
     
     const meal = {
@@ -206,7 +223,7 @@ export const getDiaryByDate = async (userId, date) => {
 // GET TODAY'S DIARY
 // ===================================
 export const getTodayDiary = async (userId) => {
-  const today = new Date().toISOString().split('T')[0];
+  const today = getLocalDateString(); // Data no fuso horário de Brasília
   return getDiaryByDate(userId, today);
 };
 
@@ -229,7 +246,7 @@ export const calculateDeficitSurplus = async (userId, date = null) => {
     const targetCalories = profile.calculated.targetCalories;
     
     // Get diary for specified date or today
-    const targetDate = date || new Date().toISOString().split('T')[0];
+    const targetDate = date || getLocalDateString(); // Data no fuso horário de Brasília
     const diaryResult = await getDiaryByDate(userId, targetDate);
     
     if (!diaryResult.success) {
