@@ -1,12 +1,11 @@
 // ===================================
 // RECIPE GENERATION SERVICE
+// Com sistema de fallback automático
 // ===================================
 
 import { collection, addDoc, getDocs, deleteDoc, doc, query, orderBy } from 'firebase/firestore';
 import { db } from './config';
-
-const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
-const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent';
+import { callGeminiWithFallback, getFriendlyErrorMessage } from './geminiService';
 
 export const generateRecipe = async ({
   ingredients,
@@ -85,32 +84,17 @@ Regras importantes:
 5. Seja criativo mas prático
 6. Instruções claras e detalhadas`;
 
-    const response = await fetch(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        contents: [{
-          parts: [{
-            text: prompt
-          }]
-        }]
-      })
-    });
+    // Usar serviço com fallback automático
+    const result = await callGeminiWithFallback(prompt);
 
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.error?.message || 'Erro na API do Gemini');
+    if (!result.success) {
+      return {
+        success: false,
+        error: result.friendlyMessage || getFriendlyErrorMessage(result.error)
+      };
     }
 
-    const data = await response.json();
-
-    if (!data.candidates || !data.candidates[0]?.content?.parts?.[0]?.text) {
-      throw new Error('Resposta inválida da API');
-    }
-
-    let recipeText = data.candidates[0].content.parts[0].text.trim();
+    let recipeText = result.text.trim();
     
     // Remove markdown code blocks se existirem
     recipeText = recipeText.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
@@ -119,7 +103,10 @@ Regras importantes:
 
     // Validar estrutura
     if (!recipe.name || !recipe.ingredients || !recipe.instructions) {
-      throw new Error('Receita incompleta gerada pela IA');
+      return {
+        success: false,
+        error: 'Não conseguimos gerar a receita. Tente com outros ingredientes.'
+      };
     }
 
     return {
@@ -131,7 +118,7 @@ Regras importantes:
     console.error('Error generating recipe:', error);
     return {
       success: false,
-      error: error.message
+      error: getFriendlyErrorMessage(error)
     };
   }
 };

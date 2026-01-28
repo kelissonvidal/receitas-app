@@ -4,6 +4,7 @@
 
 import { doc, setDoc, getDoc, updateDoc, collection, query, where, orderBy, getDocs } from 'firebase/firestore';
 import { db } from './config';
+import { analyzeNutrition, getFriendlyErrorMessage } from './geminiService';
 
 // ===================================
 // FUNÇÃO PARA OBTER DATA LOCAL (BRASÍLIA)
@@ -52,67 +53,15 @@ export const addMealByText = async (userId, mealData) => {
         totalFat: manualFat
       };
     } else {
-      // Usar Gemini para analisar texto e extrair informações nutricionais
-      const analysisPrompt = `Analise esta refeição e retorne APENAS um JSON válido com as informações nutricionais:
-
-Refeição: "${description}"
-
-Retorne no formato:
-{
-  "foods": [
-    {
-      "name": "nome do alimento",
-      "quantity": "quantidade estimada",
-      "calories": número,
-      "protein": número em gramas,
-      "carbs": número em gramas,
-      "fat": número em gramas
-    }
-  ],
-  "totalCalories": soma total,
-  "totalProtein": soma total,
-  "totalCarbs": soma total,
-  "totalFat": soma total
-}
-
-Seja preciso nas estimativas. Use valores médios de porções comuns.`;
-
-      const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
+      // Usar serviço Gemini com fallback automático
+      const result = await analyzeNutrition(description);
       
-      if (!GEMINI_API_KEY) {
-        throw new Error('API Key do Gemini não configurada');
+      if (!result.success) {
+        // Retornar mensagem amigável ao usuário
+        throw new Error(result.friendlyMessage || getFriendlyErrorMessage(result.error));
       }
       
-      const response = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            contents: [{ parts: [{ text: analysisPrompt }] }]
-          })
-        }
-      );
-
-      const data = await response.json();
-      
-      // Verificar se há erro na resposta
-      if (!response.ok) {
-        console.error('Gemini API error:', data);
-        throw new Error(data.error?.message || 'Erro ao comunicar com IA');
-      }
-      
-      if (!data.candidates || !data.candidates[0] || !data.candidates[0].content) {
-        console.error('Invalid Gemini response:', data);
-        throw new Error('Resposta inválida da IA');
-      }
-      
-      const analysisText = data.candidates[0].content.parts[0].text
-        .replace(/```json/g, '')
-        .replace(/```/g, '')
-        .trim();
-      
-      nutritionData = JSON.parse(analysisText);
+      nutritionData = result.data;
     }
     
     // Criar entrada no diário

@@ -1,9 +1,9 @@
 // ===================================
 // GEMINI VISION - ANÁLISE DE FOTOS
+// Com sistema de fallback automático
 // ===================================
 
-const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
-const GEMINI_VISION_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent';
+import { callGeminiWithFallback, getFriendlyErrorMessage } from './geminiService';
 
 export const analyzeFood = async (imageFile, plateWeight = null) => {
   try {
@@ -49,40 +49,23 @@ Regras importantes:
 7. Seja específico (ex: "arroz branco" não apenas "arroz")
 8. Considere preparações (grelhado, frito, cozido)`;
 
-    const response = await fetch(`${GEMINI_VISION_URL}?key=${GEMINI_API_KEY}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        contents: [{
-          parts: [
-            {
-              text: prompt
-            },
-            {
-              inline_data: {
-                mime_type: imageFile.type,
-                data: base64Image
-              }
-            }
-          ]
-        }]
-      })
+    // Usar serviço com fallback automático
+    const result = await callGeminiWithFallback(prompt, {
+      isVision: true,
+      imageData: {
+        base64: base64Image,
+        mimeType: imageFile.type
+      }
     });
 
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.error?.message || 'Erro na API do Gemini Vision');
+    if (!result.success) {
+      return {
+        success: false,
+        error: result.friendlyMessage || getFriendlyErrorMessage(result.error)
+      };
     }
 
-    const data = await response.json();
-
-    if (!data.candidates || !data.candidates[0]?.content?.parts?.[0]?.text) {
-      throw new Error('Resposta inválida da API');
-    }
-
-    let analysisText = data.candidates[0].content.parts[0].text.trim();
+    let analysisText = result.text.trim();
     
     // Remove markdown code blocks se existirem
     analysisText = analysisText.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
@@ -91,7 +74,10 @@ Regras importantes:
 
     // Validar estrutura
     if (!analysis.description || !analysis.foods || !analysis.totalCalories) {
-      throw new Error('Análise incompleta gerada pela IA');
+      return {
+        success: false,
+        error: 'Não foi possível identificar os alimentos na foto. Tente tirar uma foto mais clara.'
+      };
     }
 
     return {
@@ -103,7 +89,7 @@ Regras importantes:
     console.error('Error analyzing food:', error);
     return {
       success: false,
-      error: error.message
+      error: getFriendlyErrorMessage(error)
     };
   }
 };
